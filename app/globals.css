@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cell-input {
+  @apply w-full text-center bg-transparent border-0 outline-none p-0 m-0;
+  font-size: inherit;
+}
+
+.cell-input:focus {
+  @apply bg-blue-50 outline outline-2 outline-blue-400 rounded;
+}

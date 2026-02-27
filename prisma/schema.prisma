@@ -1,0 +1,24 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DailyAttendance {
+  id               String   @id @default(uuid())
+  date             DateTime @db.Date
+  departmentKey    String
+  shift            String   // "day", "night", "zero"
+  quadro           Float    @default(0)
+  plannedAbsence   Float    @default(0)
+  unplannedAbsence Float    @default(0)
+  updatedAt        DateTime @updatedAt
+
+  @@unique([date, departmentKey, shift])
+}
