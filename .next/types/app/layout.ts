@@ -1,4 +1,4 @@
-// File: C:\Users\lucas.g\Downloads\attendance-app-with-dashboard\attendance-app\app\layout.tsx
+// File: C:\Users\lucas.g\projetos\github\clone\taxa-frequencia\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

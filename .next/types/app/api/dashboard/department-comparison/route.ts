@@ -1,4 +1,4 @@
-// File: C:\Users\lucas.g\Downloads\attendance-app-with-dashboard\attendance-app\app\api\dashboard\department-comparison\route.ts
+// File: C:\Users\lucas.g\projetos\github\clone\taxa-frequencia\app\api\dashboard\department-comparison\route.ts
 import * as entry from '../../../../../../app/api/dashboard/department-comparison/route.js'
 import type { NextRequest } from 'next/server.js'
 

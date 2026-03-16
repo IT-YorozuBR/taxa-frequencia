@@ -1,4 +1,4 @@
-// File: C:\Users\lucas.g\Downloads\attendance-app-with-dashboard\attendance-app\app\api\attendance\route.ts
+// File: C:\Users\lucas.g\projetos\github\clone\taxa-frequencia\app\api\attendance\route.ts
 import * as entry from '../../../../../app/api/attendance/route.js'
 import type { NextRequest } from 'next/server.js'
 

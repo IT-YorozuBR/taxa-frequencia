@@ -632,14 +632,14 @@ export default function DashboardPage() {
 
       {/* ── KPI Cards ── */}
       {loadingSummary ? <Spinner /> : summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <MetricCard
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {/* <MetricCard
             label="Quadro Total" labelJp="総人員"
             value={summary.totalQuadro.toString()}
             sub="funcionários alocados"
             color="blue"
             icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-          />
+          /> */}
           <MetricCard
             label="Ausência Planejada" labelJp="計画欠勤"
             value={summary.totalPlanned.toString()}
@@ -675,7 +675,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Department Comparison: 1º Turno (Diurno) only ── */}
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <ComparisonChart
           title="Comparativo de Presença — 1º Turno  |  出勤率比較"
           badge="1º Turno / 昼勤"
@@ -683,7 +683,7 @@ export default function DashboardPage() {
           comp={deptCompDay}
           selectedDate={selectedDate}
         />
-      </div>
+      </div> */}
 
       {/* ── Charts row 1: Trend + Absence pie ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">

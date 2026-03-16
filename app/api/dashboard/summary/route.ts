@@ -9,9 +9,9 @@ export async function GET(req: NextRequest) {
     where: { date: new Date(date + 'T00:00:00.000Z') },
   })
 
-  const totalQuadro = records.reduce((s, r) => s + r.quadro, 0)
-  const totalPlanned = records.reduce((s, r) => s + r.plannedAbsence, 0)
-  const totalUnplanned = records.reduce((s, r) => s + r.unplannedAbsence, 0)
+  const totalQuadro = records.reduce((s: any, r: any) => s + r.quadro, 0)
+  const totalPlanned = records.reduce((s: any, r: any) => s + r.plannedAbsence, 0)
+  const totalUnplanned = records.reduce((s: any, r: any) => s + r.unplannedAbsence, 0)
   const rate = totalQuadro > 0
     ? (totalQuadro - totalPlanned - totalUnplanned) / totalQuadro
     : 0

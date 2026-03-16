@@ -1,4 +1,4 @@
-// File: C:\Users\lucas.g\Downloads\attendance-app-with-dashboard\attendance-app\app\api\dashboard\trend\route.ts
+// File: C:\Users\lucas.g\projetos\github\clone\taxa-frequencia\app\api\dashboard\trend\route.ts
 import * as entry from '../../../../../../app/api/dashboard/trend/route.js'
 import type { NextRequest } from 'next/server.js'
 

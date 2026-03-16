@@ -28,22 +28,14 @@ export function sumShifts(shifts: ShiftData[]): ShiftData {
   )
 }
 
-/**
- * Returns the previous working day.
- * Monday → Friday (−3 days), any other weekday → yesterday (−1 day).
- * Weekends are skipped: Sunday → Friday, Saturday → Friday.
- */
 export function getPreviousWorkingDay(date: Date): Date {
   const d = new Date(date)
-  const day = d.getDay() // 0=Sun, 1=Mon, …, 6=Sat
+  const day = d.getDay()
   if (day === 0) {
-    // Sunday → Friday
     d.setDate(d.getDate() - 2)
   } else if (day === 1) {
-    // Monday → Friday
     d.setDate(d.getDate() - 3)
   } else {
-    // Tue–Sat → previous day
     d.setDate(d.getDate() - 1)
   }
   return d
@@ -60,7 +52,6 @@ export function toLocalDateStr(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-/** Date string → previous working day string */
 export function getPrevDayStr(dateStr: string): string {
   return toLocalDateStr(getPreviousWorkingDay(new Date(dateStr + 'T12:00:00')))
 }
@@ -73,7 +64,6 @@ type RawRecord = {
   unplannedAbsence: number
 }
 
-/** Build DeptShiftData from a flat list of records (all same date). */
 export function buildDeptShiftData(records: RawRecord[]): DeptShiftData {
   const result: DeptShiftData = {}
   for (const r of records) {
@@ -93,12 +83,6 @@ export function buildDeptShiftData(records: RawRecord[]): DeptShiftData {
   return result
 }
 
-/**
- * Merge records from two separate date fetches into a single DeptShiftData map.
- *  - currentRecords: day + zero records (from selectedDate)
- *  - prevRecords:    night records (from previousWorkingDay)
- * Only 'night' records from prevRecords are used; others are ignored.
- */
 export function buildMixedDeptShiftData(
   currentRecords: RawRecord[],
   prevRecords: RawRecord[]
@@ -111,9 +95,8 @@ export function buildMixedDeptShiftData(
     }
   }
 
-  // day + zero from selectedDate
   for (const r of currentRecords) {
-    if (r.shift === 'night') continue // night comes from prevRecords
+    if (r.shift === 'night') continue
     ensure(r.departmentKey)
     result[r.departmentKey][r.shift as Shift] = {
       quadro: r.quadro,
@@ -122,7 +105,6 @@ export function buildMixedDeptShiftData(
     }
   }
 
-  // night from previousWorkingDay
   for (const r of prevRecords) {
     if (r.shift !== 'night') continue
     ensure(r.departmentKey)

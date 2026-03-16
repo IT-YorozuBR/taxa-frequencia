@@ -8,7 +8,11 @@ interface EditableCellProps {
   className?: string
 }
 
-export default function EditableCell({ value, onChange, className = '' }: EditableCellProps) {
+export default function EditableCell({ 
+  value, 
+  onChange, 
+  className = ''
+}: EditableCellProps) {
   const [editing, setEditing] = useState(false)
   const [localVal, setLocalVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -48,7 +52,7 @@ export default function EditableCell({ value, onChange, className = '' }: Editab
 
   return (
     <span
-      className={`cursor-pointer hover:bg-blue-50 rounded px-1 ${className}`}
+      className={`cursor-pointer hover:bg-blue-50 rounded px-1 font-normal text-gray-900 ${className}`}
       onClick={startEdit}
       title="Clique para editar"
     >

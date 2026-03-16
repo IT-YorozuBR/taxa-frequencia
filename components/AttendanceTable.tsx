@@ -6,8 +6,8 @@ import { DeptShiftData, ShiftData, calcAttendanceRate, emptyShift, sumShifts } f
 
 interface AttendanceTableProps {
   data: DeptShiftData
-  date: string      // selectedDate — shown in Diurno & Zero Hora headers
-  prevDate: string  // previousWorkingDay — shown in Noturno header
+  date: string
+  prevDate: string
   onCellChange: (deptKey: string, shift: Shift, field: 'quadro' | 'plannedAbsence' | 'unplannedAbsence', value: number) => void
 }
 
@@ -29,37 +29,52 @@ function fmtPct(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`
 }
 
-// Format date as DD/MM for compact header display
 function fmtShort(ds: string): string {
   const [, m, d] = ds.split('-')
   return `${d}/${m}`
 }
 
-function ShiftCells({
-  sd, editable, deptKey, shift, onCellChange,
-}: {
+interface ShiftCellsProps {
   sd: ShiftData
   editable: boolean
   deptKey?: string
   shift?: Shift
   onCellChange?: (d: string, s: Shift, f: 'quadro' | 'plannedAbsence' | 'unplannedAbsence', v: number) => void
-}) {
+}
+
+function ShiftCells({
+  sd,
+  editable,
+  deptKey,
+  shift,
+  onCellChange,
+}: ShiftCellsProps) {
   const rate = calcAttendanceRate(sd)
+  
   return (
     <>
       <td className="border border-gray-300 text-center px-1 py-1 min-w-[52px]">
         {editable && deptKey && shift && onCellChange ? (
-          <EditableCell value={sd.quadro} onChange={v => onCellChange(deptKey, shift, 'quadro', v)} />
+          <EditableCell 
+            value={sd.quadro} 
+            onChange={v => onCellChange(deptKey, shift, 'quadro', v)}
+          />
         ) : <span>{sd.quadro || 0}</span>}
       </td>
       <td className="border border-gray-300 text-center px-1 py-1 min-w-[52px]">
         {editable && deptKey && shift && onCellChange ? (
-          <EditableCell value={sd.plannedAbsence} onChange={v => onCellChange(deptKey, shift, 'plannedAbsence', v)} />
+          <EditableCell 
+            value={sd.plannedAbsence} 
+            onChange={v => onCellChange(deptKey, shift, 'plannedAbsence', v)}
+          />
         ) : <span>{sd.plannedAbsence || 0}</span>}
       </td>
       <td className="border border-gray-300 text-center px-1 py-1 min-w-[52px]">
         {editable && deptKey && shift && onCellChange ? (
-          <EditableCell value={sd.unplannedAbsence} onChange={v => onCellChange(deptKey, shift, 'unplannedAbsence', v)} />
+          <EditableCell 
+            value={sd.unplannedAbsence} 
+            onChange={v => onCellChange(deptKey, shift, 'unplannedAbsence', v)}
+          />
         ) : <span>{sd.unplannedAbsence || 0}</span>}
       </td>
       <td className={`border border-gray-300 text-center px-1 py-1 min-w-[62px] font-semibold ${pctColor(rate)}`}>
@@ -82,7 +97,6 @@ export default function AttendanceTable({ data, date, prevDate, onCellChange }: 
               Quadro alocado<br /><span className="font-normal text-[10px] opacity-80">在籍者</span>
             </th>
             {SHIFTS.map(s => {
-              // Noturno shows prevDate, others show date
               const dateLabel = s.isPrevDay ? fmtShort(prevDate) : fmtShort(date)
               const isPrev = s.isPrevDay
               return (
@@ -123,6 +137,7 @@ export default function AttendanceTable({ data, date, prevDate, onCellChange }: 
             if (row.type === 'leaf') {
               const r = row as LeafRow
               const totalQ = sumShifts(SHIFTS.map(s => getSD(data, r.key, s.key))).quadro
+              
               return (
                 <tr key={idx} className="hover:bg-blue-50 transition-colors">
                   <td className="border border-gray-300 bg-gray-50 w-3 px-0.5" />
@@ -131,9 +146,19 @@ export default function AttendanceTable({ data, date, prevDate, onCellChange }: 
                     <div className="text-[10px] text-gray-400">{r.namePt}</div>
                   </td>
                   <td className="border border-gray-300 text-center px-2 py-1 font-semibold text-blue-800 bg-blue-50">{totalQ}</td>
-                  {SHIFTS.map(s => (
-                    <ShiftCells key={s.key} sd={getSD(data, r.key, s.key)} editable={true} deptKey={r.key} shift={s.key} onCellChange={onCellChange} />
-                  ))}
+                  {SHIFTS.map(s => {
+                    const sd = getSD(data, r.key, s.key)
+                    return (
+                      <ShiftCells 
+                        key={s.key} 
+                        sd={sd} 
+                        editable={true} 
+                        deptKey={r.key} 
+                        shift={s.key} 
+                        onCellChange={onCellChange}
+                      />
+                    )
+                  })}
                 </tr>
               )
             }
