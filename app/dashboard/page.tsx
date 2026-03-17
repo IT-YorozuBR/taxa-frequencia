@@ -58,7 +58,7 @@ const DEPT_LABELS: Record<string, string> = {
 }
 
 const SHIFT_LABELS: Record<string, string> = {
-  day: 'Diurno', night: 'Noturno', zero: 'Zero Hora',
+  day: 'Primeiro turno', night: 'Segundo turno', zero: 'Terceiro turno',
 }
 
 const SHIFT_COLORS: Record<string, string> = {
@@ -71,13 +71,13 @@ const PIE_COLORS = ['#f59e0b', '#ef4444', '#22c55e']
 // OUTROS, PCP, ENG, QA, PRENSA, PROD, MANUT, TOTAL
 const DEPT_BAR_COLORS: Record<string, string> = {
   OUTROS: '#1e88e5',   // blue
-  PCP:    '#fdd835',   // yellow
-  ENG:    '#7cb342',   // green
-  QA:     '#8e24aa',   // purple
+  PCP: '#fdd835',   // yellow
+  ENG: '#7cb342',   // green
+  QA: '#8e24aa',   // purple
   PRENSA: '#00acc1',   // teal
-  PROD:   '#fb8c00',   // orange
-  MANUT:  '#1a237e',   // navy
-  TOTAL:  '#e53935',   // red
+  PROD: '#fb8c00',   // orange
+  MANUT: '#1a237e',   // navy
+  TOTAL: '#e53935',   // red
 }
 
 // ─── Excel-style Presence Bar Chart ──────────────────────────────────────────
@@ -109,7 +109,7 @@ function SingleShiftChart({ title, subtitle, bars, dateLabel }: SingleShiftChart
         x={cx}
         y={y - 6}
         fill={DEPT_BAR_COLORS[label] ?? '#374151'}
-        fontSize={10}
+        fontSize={8.2}
         fontWeight={700}
         textAnchor="middle"
       >
@@ -226,10 +226,10 @@ function MetricCard({
   icon: React.ReactNode
 }) {
   const palette = {
-    blue:  { bg: 'bg-blue-50',  border: 'border-blue-200',  icon: 'bg-blue-600',  text: 'text-blue-800' },
+    blue: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'bg-blue-600', text: 'text-blue-800' },
     green: { bg: 'bg-green-50', border: 'border-green-200', icon: 'bg-green-600', text: 'text-green-800' },
     amber: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'bg-amber-500', text: 'text-amber-800' },
-    red:   { bg: 'bg-red-50',   border: 'border-red-200',   icon: 'bg-red-600',   text: 'text-red-800' },
+    red: { bg: 'bg-red-50', border: 'border-red-200', icon: 'bg-red-600', text: 'text-red-800' },
   }[color]
 
   return (
@@ -416,9 +416,9 @@ function ComparisonChart({ title, badge, loading, comp, selectedDate }: Comparis
                   const val = entry.today
                   const color = val == null ? '#e2e8f0'
                     : val >= 0.97 ? '#1d4ed8'
-                    : val >= 0.95 ? '#2563eb'
-                    : val >= 0.90 ? '#f59e0b'
-                    : '#ef4444'
+                      : val >= 0.95 ? '#2563eb'
+                        : val >= 0.90 ? '#f59e0b'
+                          : '#ef4444'
                   return <Cell key={`cell-${index}`} fill={color} />
                 })}
               </Bar>
@@ -442,25 +442,23 @@ function ComparisonChart({ title, badge, loading, comp, selectedDate }: Comparis
                     ? row.today - row.yesterday : null
                   const diffTxt = diff == null ? '—'
                     : diff > 0 ? `+${(diff * 100).toFixed(1)}pp`
-                    : diff < 0 ? `${(diff * 100).toFixed(1)}pp`
-                    : '0.0pp'
+                      : diff < 0 ? `${(diff * 100).toFixed(1)}pp`
+                        : '0.0pp'
                   return (
                     <tr key={row.department} className="hover:bg-gray-50">
                       <td className="px-3 py-1.5 font-semibold text-gray-700 border border-gray-200">{row.department}</td>
-                      <td className={`px-3 py-1.5 text-center font-semibold border border-gray-200 ${
-                        row.today == null ? 'text-gray-300'
-                          : row.today >= 0.95 ? 'text-blue-700' : 'text-red-600'
-                      }`}>
+                      <td className={`px-3 py-1.5 text-center font-semibold border border-gray-200 ${row.today == null ? 'text-gray-300'
+                        : row.today >= 0.95 ? 'text-blue-700' : 'text-red-600'
+                        }`}>
                         {row.today != null ? fmtPct(row.today) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center text-slate-500 border border-gray-200">
                         {row.yesterday != null ? fmtPct(row.yesterday) : '—'}
                       </td>
-                      <td className={`px-3 py-1.5 text-center font-medium border border-gray-200 ${
-                        diff == null ? 'text-gray-300'
-                          : diff > 0 ? 'text-green-600'
+                      <td className={`px-3 py-1.5 text-center font-medium border border-gray-200 ${diff == null ? 'text-gray-300'
+                        : diff > 0 ? 'text-green-600'
                           : diff < 0 ? 'text-red-500' : 'text-gray-400'
-                      }`}>
+                        }`}>
                         {diffTxt}
                       </td>
                     </tr>
@@ -542,8 +540,8 @@ export default function DashboardPage() {
 
   const rateColor = !summary ? 'blue'
     : summary.attendanceRate >= 0.97 ? 'green'
-    : summary.attendanceRate >= 0.95 ? 'amber'
-    : 'red'
+      : summary.attendanceRate >= 0.95 ? 'amber'
+        : 'red'
 
   // Absence pie data
   const present = summary
@@ -558,27 +556,42 @@ export default function DashboardPage() {
   // Dept bar chart — rate per dept
   const deptBarData = summary
     ? Object.entries(summary.byDept)
-        .map(([key, d]) => ({
-          name: DEPT_LABELS[key] ?? key,
-          rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
-          absences: d.planned + d.unplanned,
-        }))
-        .filter(d => d.absences > 0 || d.rate > 0)
-        .sort((a, b) => a.rate - b.rate)  // worst first
+      .map(([key, d]) => ({
+        name: DEPT_LABELS[key] ?? key,
+        rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
+        absences: d.planned + d.unplanned,
+      }))
+      .filter(d => d.absences > 0 || d.rate > 0)
+      .sort((a, b) => a.rate - b.rate)  // worst first
     : []
 
   // Shift bar chart
   const shiftBarData = summary
     ? Object.entries(summary.byShift).map(([shift, d]) => ({
-        name: SHIFT_LABELS[shift] ?? shift,
-        shift,
-        quadro: d.quadro,
-        planned: d.planned,
-        unplanned: d.unplanned,
-        rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
-      }))
+      name: SHIFT_LABELS[shift] ?? shift,
+      shift,
+      quadro: d.quadro,
+      planned: d.planned,
+      unplanned: d.unplanned,
+      rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
+    }))
     : []
 
+  const sortedShiftBarData = [...shiftBarData].sort((a, b) => {
+    const order: Record<string, number> = { day: 1, night: 2, zero: 3 }
+    return (order[a.shift] ?? 99) - (order[b.shift] ?? 99)
+  })
+
+  const TrendTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+
+    return (
+      <div className="bg-white p-2 border rounded shadow">
+        <p>{label}</p> {/* usa direto */}
+        <p>{(payload[0].value * 100).toFixed(1)}%</p>
+      </div>
+    )
+  }
   // Trend data — format dates for display
   const trendDisplay = trend.map(t => ({
     ...t,
@@ -823,19 +836,19 @@ export default function DashboardPage() {
           ) : (
             <>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={shiftBarData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <BarChart data={sortedShiftBarData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} />
                   <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                   <Tooltip />
                   <Legend iconType="circle" iconSize={8} />
-                  <Bar dataKey="planned" name="Aus. Planejada" stackId="a" fill="#f59e0b" radius={[0,0,0,0]} />
-                  <Bar dataKey="unplanned" name="Falta s/ Aviso" stackId="a" fill="#ef4444" radius={[4,4,0,0]} />
+                  <Bar dataKey="planned" name="Aus. Planejada" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="unplanned" name="Falta s/ Aviso" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
               {/* Shift rate summary */}
               <div className="grid grid-cols-3 gap-3 mt-4">
-                {shiftBarData.map(s => (
+                {sortedShiftBarData.map(s => (
                   <div key={s.shift} className="rounded-lg p-3 text-center" style={{ background: SHIFT_COLORS[s.shift] + '18', border: `1px solid ${SHIFT_COLORS[s.shift]}44` }}>
                     <div className="text-xs text-gray-500">{s.name}</div>
                     <div className="text-lg font-bold mt-0.5" style={{ color: SHIFT_COLORS[s.shift] }}>

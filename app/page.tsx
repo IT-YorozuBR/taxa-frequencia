@@ -60,9 +60,9 @@ export default function Home() {
       setLoading(false)
     }
   }, [])
-  
+
   useEffect(() => {
-    fetchData(selectedDate).then(d => {
+    fetchData(selectedDate).then(d => {  
       setData(d)
       setHasLocalChanges(false)
     })
