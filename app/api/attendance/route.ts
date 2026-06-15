@@ -1,51 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getPrevWorkingDayStr(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z')
-  const dow = d.getUTCDay()
-  const offset = dow === 0 ? 2 : dow === 1 ? 3 : 1
-  d.setUTCDate(d.getUTCDate() - offset)
-  return d.toISOString().split('T')[0]
-}
-
-function getTodayStr(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
-async function getPrevRecordsWithData(
-  date: string,
-  shiftFilter?: string
-): Promise<any[]> {
-  const today = getTodayStr()
-  
-  if (date < today) {
-    return []
-  }
-
-  let searchDate = getPrevWorkingDayStr(date)
-  
-  for (let i = 0; i < 30; i++) {
-    const searchDateObj = new Date(searchDate + 'T00:00:00.000Z')
-    const whereSearch: Record<string, unknown> = {
-      date: searchDateObj,
-    }
-    if (shiftFilter) whereSearch.shift = shiftFilter
-
-    const records = await prisma.dailyAttendance.findMany({ 
-      where: whereSearch 
-    })
-    
-    if (records.length > 0) {
-      return records
-    }
-    
-    if (searchDate === today) break
-    searchDate = getPrevWorkingDayStr(searchDate)
-  }
-
-  return []
-}
+import { getPrevWorkingDayStr, getTodayStr } from '@/lib/utils'
+import { findLastDayWithData, ensureCarryForwardToToday } from '@/lib/carryForward'
 
 export async function GET(req: NextRequest) {
   try {
@@ -55,62 +11,26 @@ export async function GET(req: NextRequest) {
     }
 
     const shiftFilter = req.nextUrl.searchParams.get('shift')
-    const dateObj = new Date(date + 'T00:00:00.000Z')
     const today = getTodayStr()
 
-    const where: Record<string, unknown> = { date: dateObj }
+    // Materialize the carry-forward chain up to today before reading. This runs
+    // on every fetch the page makes (current day AND previous-day night fetch),
+    // so the night column is never blank regardless of request ordering.
+    await ensureCarryForwardToToday()
+
+    const where: Record<string, unknown> = { date: new Date(date + 'T00:00:00.000Z') }
     if (shiftFilter) where.shift = shiftFilter
 
-    // 1️⃣ Procurar dados do dia solicitado
     let records = await prisma.dailyAttendance.findMany({ where })
 
-    // 2️⃣ Se não achou E é hoje ou depois, buscar anterior
-    if (records.length === 0 && date >= today) {
-      let searchDate = getPrevWorkingDayStr(date)
-      
-      // Continua buscando para trás até encontrar dados (máximo 30 dias)
-      for (let i = 0; i < 30; i++) {
-        const searchDateObj = new Date(searchDate + 'T00:00:00.000Z')
-        const whereSearch: Record<string, unknown> = { date: searchDateObj }
-        if (shiftFilter) whereSearch.shift = shiftFilter
-
-        const prevRecords = await prisma.dailyAttendance.findMany({ 
-          where: whereSearch 
-        })
-        
-        if (prevRecords.length > 0) {
-          // ✅ Encontrou dados anteriores!
-          
-          // 🎯 NOVO: Apenas createMany se for TODAY
-          if (date === today) {
-            try {
-              await prisma.dailyAttendance.createMany({
-                data: prevRecords.map(r => ({
-                  date: dateObj,
-                  departmentKey: r.departmentKey,
-                  shift: r.shift,
-                  quadro: r.quadro,
-                  plannedAbsence: r.plannedAbsence,
-                  unplannedAbsence: r.unplannedAbsence,
-                })),
-                skipDuplicates: true
-              })
-            } catch (error) {
-              console.log('Dados já existem para hoje')
-            }
-
-            // Buscar dados que acabamos de criar
-            records = await prisma.dailyAttendance.findMany({ where })
-          } else {
-            // Se é DEPOIS de hoje, retorna virtual (não cria no banco)
-            return NextResponse.json(prevRecords)
-          }
-
-          break
-        }
-        
-        if (searchDate === today) break
-        searchDate = getPrevWorkingDayStr(searchDate)
+    // Future dates: never persist, just preview the last known day virtually.
+    if (records.length === 0 && date > today) {
+      const source = await findLastDayWithData(getPrevWorkingDayStr(date))
+      if (source) {
+        const virtual = shiftFilter
+          ? source.recs.filter(r => r.shift === shiftFilter)
+          : source.recs
+        return NextResponse.json(virtual)
       }
     }
 

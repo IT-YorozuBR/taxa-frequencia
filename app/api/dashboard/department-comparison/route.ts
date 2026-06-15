@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getPrevWorkingDayStr } from '@/lib/utils'
 
 // Department groups: each entry maps a chart label to the leaf department keys
 const GROUPS: { label: string; keys: string[] }[] = [
@@ -23,20 +24,11 @@ function calcRate(records: { quadro: number; plannedAbsence: number; unplannedAb
   return totalQ > 0 ? (totalQ - totalA) / totalQ : null
 }
 
-function getPrevWorkingDay(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z')
-  // getUTCDay: 0=Sun, 1=Mon, ..., 6=Sat
-  const dow = d.getUTCDay()
-  const offset = dow === 1 ? 3 : 1 // Monday → go back 3 days (Friday), else 1 day
-  d.setUTCDate(d.getUTCDate() - offset)
-  return d.toISOString().split('T')[0]
-}
-
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date')
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const prevDate = getPrevWorkingDay(date)
+  const prevDate = getPrevWorkingDayStr(date)
 
   const [todayRecords, prevRecords] = await Promise.all([
     prisma.dailyAttendance.findMany({ where: { date: new Date(date + 'T00:00:00.000Z') } }),

@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getPrevWorkingDay(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z')
-  const dow = d.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
-  const offset = dow === 1 ? 3 : 1 // Monday → go back 3 days (Friday), else 1 day
-  d.setUTCDate(d.getUTCDate() - offset)
-  return d.toISOString().split('T')[0]
-}
+import { getPrevWorkingDayStr } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date')
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const prevDate = getPrevWorkingDay(date)
+  const prevDate = getPrevWorkingDayStr(date)
 
   const [records, prevRecords] = await Promise.all([
     prisma.dailyAttendance.findMany({

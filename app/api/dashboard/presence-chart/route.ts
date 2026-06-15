@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getPrevWorkingDayStr } from '@/lib/utils'
 
 // Department groups shown in the Excel chart, in order
 const GROUPS = [
@@ -24,18 +25,11 @@ function rate(records: Rec[], keys: string[], shift: string | null): number | nu
   return q > 0 ? (q - a) / q : null
 }
 
-function getPrevWorkingDay(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z')
-  const dow = d.getUTCDay() // 0=Sun, 1=Mon
-  d.setUTCDate(d.getUTCDate() - (dow === 1 ? 3 : 1))
-  return d.toISOString().split('T')[0]
-}
-
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date')
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const prevDate = getPrevWorkingDay(date)
+  const prevDate = getPrevWorkingDayStr(date)
 
   const [todayRecs, prevRecs] = await Promise.all([
     prisma.dailyAttendance.findMany({ where: { date: new Date(date + 'T00:00:00.000Z') } }),

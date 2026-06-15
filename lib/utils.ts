@@ -52,8 +52,38 @@ export function toLocalDateStr(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+// ─── Canonical working-day helpers (UTC, shared by client + API) ───────────────
+// Working days = Mon–Fri. "Previous working day": Mon → Fri (-3), Sun → Fri (-2),
+// otherwise the day before (-1). Use these everywhere so the page and every
+// dashboard endpoint agree on what "the previous/next working day" is.
+
+export function getPrevWorkingDayStr(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00Z')
+  const dow = d.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const offset = dow === 0 ? 2 : dow === 1 ? 3 : 1
+  d.setUTCDate(d.getUTCDate() - offset)
+  return d.toISOString().split('T')[0]
+}
+
+export function getNextWorkingDayStr(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00Z')
+  do {
+    d.setUTCDate(d.getUTCDate() + 1)
+  } while (d.getUTCDay() === 0 || d.getUTCDay() === 6) // skip Sat/Sun
+  return d.toISOString().split('T')[0]
+}
+
 export function getPrevDayStr(dateStr: string): string {
-  return toLocalDateStr(getPreviousWorkingDay(new Date(dateStr + 'T12:00:00')))
+  return getPrevWorkingDayStr(dateStr)
+}
+
+// "Today" as a YYYY-MM-DD string in the business timezone (America/São Paulo).
+// IMPORTANT: the server runs in UTC on Vercel, so using new Date().toISOString()
+// would roll over to "tomorrow" after 21:00 local time. We anchor on the same
+// timezone the client uses (toLocalDateStr) so the page, the API and the cron all
+// agree on what "today" is. en-CA locale yields the ISO YYYY-MM-DD format.
+export function getTodayStr(tz = 'America/Sao_Paulo'): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: tz })
 }
 
 type RawRecord = {

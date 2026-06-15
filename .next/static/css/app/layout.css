@@ -881,6 +881,9 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
+.p-2 {
+  padding: 0.5rem;
+}
 .p-2\.5 {
   padding: 0.625rem;
 }
@@ -895,9 +898,6 @@ video {
 }
 .p-6 {
   padding: 1.5rem;
-}
-.p-2 {
-  padding: 0.5rem;
 }
 .px-0\.5 {
   padding-left: 0.125rem;

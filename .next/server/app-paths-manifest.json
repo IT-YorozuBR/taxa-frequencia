@@ -1,9 +1,4 @@
 {
   "/page": "app/page.js",
-  "/api/dashboard/presence-chart/route": "app/api/dashboard/presence-chart/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/api/attendance/route": "app/api/attendance/route.js",
-  "/api/dashboard/trend/route": "app/api/dashboard/trend/route.js",
-  "/api/dashboard/department-comparison/route": "app/api/dashboard/department-comparison/route.js",
-  "/api/dashboard/summary/route": "app/api/dashboard/summary/route.js"
+  "/api/attendance/route": "app/api/attendance/route.js"
 }
