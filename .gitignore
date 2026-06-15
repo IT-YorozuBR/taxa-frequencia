@@ -27,6 +27,8 @@ ENV/
 # Build e dist
 /dist
 /build
+.next/
+out/
 *.min.js
 *.min.css
 
