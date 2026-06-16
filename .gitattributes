@@ -1,0 +1,4 @@
+# Scripts shell precisam de LF para rodar em Linux/containers.
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+docker/cron-entrypoint.sh text eol=lf
