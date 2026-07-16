@@ -52,6 +52,7 @@ coverage/
 # Backups de banco (ficam só na VM, não vão pro git)
 backup/*
 !backup/.gitkeep
+.backup
 
 # Arquivos temporários
 *.tmp
