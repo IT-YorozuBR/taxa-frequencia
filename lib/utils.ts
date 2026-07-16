@@ -69,7 +69,7 @@ export function getNextWorkingDayStr(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00Z')
   do {
     d.setUTCDate(d.getUTCDate() + 1)
-  } while (d.getUTCDay() === 0 || d.getUTCDay() === 6) // skip Sat/Sun
+  } while (d.getUTCDay() === 0) // skip Sunday only — Saturday runs 1º/3º turno
   return d.toISOString().split('T')[0]
 }
 

@@ -39,6 +39,15 @@ export async function findLastDayWithData(
 // exactly correct — do NOT special-case shifts here, or the 2º turno mapping
 // breaks.
 //
+// Exception: Saturday. The factory only runs 1º/3º turno on Saturdays — 2º
+// turno for a Saturday view is already read dynamically from Friday's `night`
+// row (getPrevWorkingDayStr(Saturday) === Friday). So when materializing a
+// Saturday we drop the copied `night` row: keeping it would create a row
+// physically dated on Saturday that no read path ever consults for that
+// Saturday, but that summary/department-comparison endpoints (which sum ALL
+// shifts for a date without the presence table's night exclusion) would
+// double-count alongside the real Friday night figures.
+//
 // Returns the list of dates that were materialized (empty if nothing to do).
 export async function ensureCarryForwardToToday(
   today: string = getTodayStr()
@@ -54,13 +63,16 @@ export async function ensureCarryForwardToToday(
   if (!source) return [] // empty database — nothing to carry forward
 
   // Walk forward over working days from source+1 … today, filling any gap.
-  // Note: getNextWorkingDayStr only yields Mon–Fri, so this never creates
-  // weekend rows even when invoked on a Saturday/Sunday.
+  // Note: getNextWorkingDayStr yields Mon–Sat (Sunday is skipped), so this
+  // materializes Saturday's 1º/3º turno but never creates a Sunday row.
   const filled: string[] = []
   let cursor = getNextWorkingDayStr(source.dateStr)
   while (cursor <= today) {
+    const isSaturday = new Date(cursor + 'T12:00:00Z').getUTCDay() === 6
+    const recsToCopy = isSaturday ? source.recs.filter(r => r.shift !== 'night') : source.recs
+
     await prisma.dailyAttendance.createMany({
-      data: source.recs.map(r => ({
+      data: recsToCopy.map(r => ({
         date: new Date(cursor + 'T00:00:00.000Z'),
         departmentKey: r.departmentKey,
         shift: r.shift,

@@ -9,6 +9,7 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+.env.docker
 venv/
 env/
 ENV/
@@ -47,6 +48,10 @@ yarn-error.log*
 # Testes
 coverage/
 .nyc_output/
+
+# Backups de banco (ficam só na VM, não vão pro git)
+backup/*
+!backup/.gitkeep
 
 # Arquivos temporários
 *.tmp

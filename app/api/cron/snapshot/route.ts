@@ -9,8 +9,13 @@ import { ensureCarryForwardToToday } from '@/lib/carryForward'
 // on read, so behaviour is identical whether or not anyone opened the app.
 //
 // Shift mapping (1º/3º turno = today, 2º turno = previous working day) is handled
-// inside ensureCarryForwardToToday: it copies the physical rows verbatim, so the
-// night-shift semantics are preserved without any special-casing here.
+// inside ensureCarryForwardToToday: it copies the physical rows verbatim (except
+// it drops the `night` row when materializing a Saturday, since 2º turno doesn't
+// run then and that row would otherwise double-count against Friday's).
+//
+// This cron only fires Mon–Fri (see vercel.json); Saturday's snapshot is instead
+// materialized lazily the first time someone opens the app that day, via the
+// same ensureCarryForwardToToday call inside GET /api/attendance.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60

@@ -11,7 +11,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+      # Restauração automática do backup: TODO arquivo .sql colocado na pasta
+      # ./backup é executado pelo Postgres APENAS na primeira inicialização
+      # (quando o volume pgdata ainda está vazio). É assim que o banco "sobe
+      # já com o backup". Coloque seu dump .sql dentro de ./backup na VM.
+      - ./backup:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
