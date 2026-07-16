@@ -153,10 +153,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Agora atualizar o registro que foi editado
-    console.log('🔵 [POST] Agora vai ATUALIZAR o registro que foi editado')
-    
-    const record = await prisma.dailyAttendance.update({
+    // Agora salvar o registro que foi editado. Usa upsert (não update) porque
+    // o passo de cópia acima só recria os setores/turnos que já existiam em
+    // algum dia anterior — se este (setor, turno) nunca existiu em nenhum dia
+    // (ex.: primeira vez preenchendo um turno novo para aquele setor), a linha
+    // ainda não existe aqui, e um update puro falharia com P2025.
+    console.log('🔵 [POST] Agora vai SALVAR o registro que foi editado')
+
+    const record = await prisma.dailyAttendance.upsert({
       where: {
         date_departmentKey_shift: {
           date: storeDateObj,
@@ -164,7 +168,15 @@ export async function POST(req: NextRequest) {
           shift,
         },
       },
-      data: {
+      create: {
+        date: storeDateObj,
+        departmentKey,
+        shift,
+        quadro: quadro ?? 0,
+        plannedAbsence: plannedAbsence ?? 0,
+        unplannedAbsence: unplannedAbsence ?? 0,
+      },
+      update: {
         quadro: quadro ?? 0,
         plannedAbsence: plannedAbsence ?? 0,
         unplannedAbsence: unplannedAbsence ?? 0,
