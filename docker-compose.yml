@@ -13,8 +13,11 @@ services:
     volumes:
       # pgdata_pg18: volume novo (o antigo "pgdata" tinha dados gravados por
       # Postgres 17 num formato incompativel com a imagem 18; foi preservado
-      # intacto como backup e nao e mais referenciado aqui).
-      - pgdata_pg18:/var/lib/postgresql/data
+      # intacto como backup e nao e mais referenciado aqui). A imagem
+      # postgres:18 declara VOLUME /var/lib/postgresql (sem "/data") e trata
+      # qualquer mount em /var/lib/postgresql/data como caminho legado — por
+      # isso o mount aqui precisa ser exatamente em /var/lib/postgresql.
+      - pgdata_pg18:/var/lib/postgresql
       # Restauração automática do backup: TODO arquivo .sql colocado na pasta
       # ./backup é executado pelo Postgres APENAS na primeira inicialização
       # (quando o volume pgdata_pg18 ainda está vazio). É assim que o banco
