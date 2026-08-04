@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql/data
       # Restauração automática do backup: TODO arquivo .sql colocado na pasta
       # ./backup é executado pelo Postgres APENAS na primeira inicialização
       # (quando o volume pgdata ainda está vazio). É assim que o banco "sobe
