@@ -10,11 +10,11 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json yarn.lock ./
-RUN corepack enable && yarn install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
-RUN yarn build
+RUN npm run build
 
 ############################
 # Estágio 2: runtime
@@ -29,12 +29,10 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable
-
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/yarn.lock ./yarn.lock
+COPY --from=builder /app/package-lock.json ./package-lock.json
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/prisma ./prisma
 
@@ -44,4 +42,4 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 3000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["yarn", "start"]
+CMD ["npm", "start"]
