@@ -93,5 +93,5 @@ export type Shift = 'day' | 'night' | 'zero'
 export const SHIFTS: { key: Shift; label: string; labelJp: string; isPrevDay: boolean }[] = [
   { key: 'day',   label: 'Diurno (1ºturno)',    labelJp: '昼勤',   isPrevDay: false },
   { key: 'night', label: 'Noturno (2ºturno)',   labelJp: '夜勤',   isPrevDay: true  },
-  { key: 'zero',  label: 'Zero Hora (3ºturno)', labelJp: '深夜勤', isPrevDay: false },
+  { key: 'zero',  label: 'Zero Hora (3ºturno)', labelJp: '深夜勤', isPrevDay: true  },
 ]

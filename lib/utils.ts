@@ -77,6 +77,25 @@ export function getPrevDayStr(dateStr: string): string {
   return getPrevWorkingDayStr(dateStr)
 }
 
+export function isWeekend(dateStr: string): boolean {
+  const dow = new Date(dateStr + 'T12:00:00Z').getUTCDay()
+  return dow === 0 || dow === 6 // domingo ou sábado
+}
+
+// Resolve, para uma data exibida num gráfico do dashboard, de qual data
+// física cada turno deve ler. 2º/3º turno sempre olham para o dia útil
+// anterior; 1º turno só cai para o dia útil anterior quando a data
+// exibida é sábado/domingo (fim de semana não tem gráfico próprio — os
+// três turnos mostram sexta-feira).
+export function chartShiftDates(date: string): { day: string; night: string; zero: string } {
+  const prev = getPrevWorkingDayStr(date)
+  return {
+    day: isWeekend(date) ? prev : date,
+    night: prev,
+    zero: prev,
+  }
+}
+
 // "Today" as a YYYY-MM-DD string in the business timezone (America/São Paulo).
 // IMPORTANT: the server runs in UTC on Vercel, so using new Date().toISOString()
 // would roll over to "tomorrow" after 21:00 local time. We anchor on the same
@@ -126,7 +145,7 @@ export function buildMixedDeptShiftData(
   }
 
   for (const r of currentRecords) {
-    if (r.shift === 'night') continue
+    if (r.shift === 'night' || r.shift === 'zero') continue
     ensure(r.departmentKey)
     result[r.departmentKey][r.shift as Shift] = {
       quadro: r.quadro,
@@ -136,9 +155,9 @@ export function buildMixedDeptShiftData(
   }
 
   for (const r of prevRecords) {
-    if (r.shift !== 'night') continue
+    if (r.shift !== 'night' && r.shift !== 'zero') continue
     ensure(r.departmentKey)
-    result[r.departmentKey].night = {
+    result[r.departmentKey][r.shift as 'night' | 'zero'] = {
       quadro: r.quadro,
       plannedAbsence: r.plannedAbsence,
       unplannedAbsence: r.unplannedAbsence,

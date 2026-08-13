@@ -36,7 +36,7 @@ export default function Home() {
 
       const [currentRes, prevRes] = await Promise.all([
         fetch(`/api/attendance?date=${date}`),
-        fetch(`/api/attendance?date=${prevDay}&shift=night`),
+        fetch(`/api/attendance?date=${prevDay}`),
       ])
 
       if (!currentRes.ok || !prevRes.ok) {
@@ -205,7 +205,7 @@ export default function Home() {
           </div>
         </div>
         <div className="text-right">
-          <span className="text-sm opacity-70">Noturno (dia útil anterior) / 夜勤前日:</span>
+          <span className="text-sm opacity-70">Noturno e Zero Hora (dia útil anterior) / 夜勤・深夜勤前日:</span>
           <div className="text-sm font-semibold capitalize">{formatDisplayDate(prevDate)}</div>
         </div>
       </div>
@@ -238,7 +238,7 @@ export default function Home() {
       )}
 
       <div className="mt-4 text-xs text-gray-400 text-center">
-        💡 Clique para editar • Noturno = dados do dia útil anterior ({prevDate})
+        💡 Clique para editar • Noturno e Zero Hora = dados do dia útil anterior ({prevDate})
       </div>
     </main>
   )

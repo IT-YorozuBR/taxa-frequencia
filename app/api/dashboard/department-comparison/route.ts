@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPrevWorkingDayStr } from '@/lib/utils'
+import { getPrevWorkingDayStr, chartShiftDates } from '@/lib/utils'
 
 // Department groups: each entry maps a chart label to the leaf department keys
 const GROUPS: { label: string; keys: string[] }[] = [
@@ -29,15 +29,26 @@ export async function GET(req: NextRequest) {
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
   const prevDate = getPrevWorkingDayStr(date)
+  const shiftDates = chartShiftDates(date)
 
   const [todayRecords, prevRecords] = await Promise.all([
     prisma.dailyAttendance.findMany({ where: { date: new Date(date + 'T00:00:00.000Z') } }),
     prisma.dailyAttendance.findMany({ where: { date: new Date(prevDate + 'T00:00:00.000Z') } }),
   ])
 
+  // "Hoje": 1º turno vem do próprio dia (ou de sexta, se `date` for fim de
+  // semana — shiftDates.day já resolve isso e sempre coincide com
+  // `prevDate` nesse caso); 2º/3º turno sempre do dia útil anterior.
+  const daySource = shiftDates.day === date ? todayRecords : prevRecords
+  const effectiveToday = [
+    ...daySource.filter(r => r.shift === 'day'),
+    ...prevRecords.filter(r => r.shift === 'night'),
+    ...prevRecords.filter(r => r.shift === 'zero'),
+  ]
+
   const result = GROUPS.map(g => ({
     department: g.label,
-    today: calcRate([], g.keys, todayRecords as (typeof todayRecords[0] & { departmentKey: string })[]),
+    today: calcRate([], g.keys, effectiveToday as (typeof todayRecords[0] & { departmentKey: string })[]),
     yesterday: calcRate([], g.keys, prevRecords as (typeof prevRecords[0] & { departmentKey: string })[]),
   }))
 

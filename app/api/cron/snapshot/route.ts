@@ -3,19 +3,22 @@ import { prisma } from '@/lib/prisma'
 import { getTodayStr } from '@/lib/utils'
 import { ensureCarryForwardToToday } from '@/lib/carryForward'
 
-// End-of-day snapshot job. Triggered by Vercel Cron (see vercel.json) every
-// working day. It guarantees a snapshot row set exists for "today" by carrying
-// forward the last working day with data — the same logic the page runs lazily
-// on read, so behaviour is identical whether or not anyone opened the app.
+// End-of-day snapshot job. Triggered daily at 1:30 (Brasília time) by the
+// cron container (see docker/cron-entrypoint.sh) / Vercel Cron (see
+// vercel.json). It guarantees a snapshot row set exists for "today" by
+// carrying forward the last working day with data — the same logic the page
+// runs lazily on read, so behaviour is identical whether or not anyone
+// opened the app.
 //
 // Shift mapping (1º/3º turno = today, 2º turno = previous working day) is handled
 // inside ensureCarryForwardToToday: it copies the physical rows verbatim (except
 // it drops the `night` row when materializing a Saturday, since 2º turno doesn't
 // run then and that row would otherwise double-count against Friday's).
 //
-// This cron only fires Mon–Fri (see vercel.json); Saturday's snapshot is instead
-// materialized lazily the first time someone opens the app that day, via the
-// same ensureCarryForwardToToday call inside GET /api/attendance.
+// The cron now fires every day (including weekends); GET /api/attendance still
+// calls the same ensureCarryForwardToToday lazily on every read, so it remains
+// a safety net if this cron ever fails to run rather than the only path for
+// any particular day.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60

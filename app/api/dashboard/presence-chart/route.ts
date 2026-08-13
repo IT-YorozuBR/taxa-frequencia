@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPrevWorkingDayStr } from '@/lib/utils'
+import { getPrevWorkingDayStr, chartShiftDates } from '@/lib/utils'
 
 // Department groups shown in the Excel chart, in order
 const GROUPS = [
@@ -30,11 +30,17 @@ export async function GET(req: NextRequest) {
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
   const prevDate = getPrevWorkingDayStr(date)
+  const shiftDates = chartShiftDates(date)
 
   const [todayRecs, prevRecs] = await Promise.all([
     prisma.dailyAttendance.findMany({ where: { date: new Date(date + 'T00:00:00.000Z') } }),
     prisma.dailyAttendance.findMany({ where: { date: new Date(prevDate + 'T00:00:00.000Z') } }),
   ])
+
+  // Fim de semana não tem gráfico próprio: turno1 (1º) de sábado/domingo
+  // mostra sexta, igual ao 2º turno já faz — shiftDates.day resolve isso
+  // e, quando é fim de semana, sempre coincide com `prevRecs`.
+  const turno1TodaySource = shiftDates.day === date ? todayRecs : prevRecs
 
   const build = (recs: Rec[], shift: string) =>
     GROUPS.map(g => ({
@@ -46,12 +52,16 @@ export async function GET(req: NextRequest) {
     date,
     prevDate,
     turno1: {
-      today:    build(todayRecs, 'day'),
+      today:    build(turno1TodaySource, 'day'),
       previous: build(prevRecs,  'day'),
     },
     turno2: {
       today:    build(todayRecs, 'night'),
       previous: build(prevRecs,  'night'),
+    },
+    turno3: {
+      today:    build(todayRecs, 'zero'),
+      previous: build(prevRecs,  'zero'),
     },
   })
 }

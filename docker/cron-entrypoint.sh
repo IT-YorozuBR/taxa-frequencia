@@ -2,15 +2,15 @@
 set -e
 
 # Container leve que substitui o Vercel Cron.
-# Chama o endpoint de snapshot nos dias úteis às 22:00 UTC
-# (mesmo horário configurado no vercel.json).
+# Chama o endpoint de snapshot todos os dias às 1:30 (horário de Brasília,
+# UTC-3 o ano todo) = 4:30 UTC.
 
 apk add --no-cache curl tzdata >/dev/null
 
 # O CRON_SECRET é escapado com \$ para ser expandido na hora da execução do job
 # (o crond do BusyBox repassa o ambiente para os jobs).
 cat > /etc/crontabs/root <<'CRON'
-0 22 * * 1-5 curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://app:3000/api/cron/snapshot >> /var/log/cron.log 2>&1
+30 4 * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://app:3000/api/cron/snapshot >> /var/log/cron.log 2>&1
 CRON
 
 echo "[cron] Agendamento instalado:"

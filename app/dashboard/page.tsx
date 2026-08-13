@@ -44,6 +44,7 @@ interface PresenceChartData {
   prevDate: string
   turno1: { today: PresenceBar[]; previous: PresenceBar[] }
   turno2: { today: PresenceBar[]; previous: PresenceBar[] }
+  turno3: { today: PresenceBar[]; previous: PresenceBar[] }
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -201,6 +202,15 @@ function PresenceChartPanel({ loading, data, selectedDate }: PresenceChartPanelP
             title="2º Turno"
             subtitle="PRESENÇA 2º TURNO"
             bars={data.turno2.previous}
+            dateLabel={fmtDateBold(data.prevDate)}
+          />
+          {/* Divider */}
+          <div className="hidden md:block w-px bg-gray-200 self-stretch" />
+          <div className="block md:hidden h-px bg-gray-200 w-full" />
+          <SingleShiftChart
+            title="3º Turno"
+            subtitle="PRESENÇA 3º TURNO"
+            bars={data.turno3.previous}
             dateLabel={fmtDateBold(data.prevDate)}
           />
         </div>

@@ -28,25 +28,26 @@ export async function findLastDayWithData(
 
 // Idempotently carry forward the last day with data across every working day up
 // to (and including) `today`. This guarantees the whole chain exists — crucially
-// the PREVIOUS working day of today, since the night shift (2º turno) of any
-// display date is read from the previous working day's record.
+// the PREVIOUS working day of today, since the night AND zero shifts (2º/3º
+// turno) of any display date are read from the previous working day's record.
 //
 // ⚠️ Shift semantics: we copy ALL of the source day's rows verbatim — `day`
 // (1º turno), `night` (2º turno) and `zero` (3º turno) together. Storage is
 // shift-agnostic: a row's `shift` and `date` already encode where it belongs
-// (night rows are stored under the previous working day on write, and read back
-// for the next day on display). So snapshotting the physical rows forward is
-// exactly correct — do NOT special-case shifts here, or the 2º turno mapping
-// breaks.
+// (night AND zero rows are stored under the previous working day on write,
+// and read back for the next day on display). So snapshotting the physical
+// rows forward is exactly correct — do NOT special-case shifts here, or the
+// 2º/3º turno mapping breaks.
 //
-// Exception: Saturday. The factory only runs 1º/3º turno on Saturdays — 2º
-// turno for a Saturday view is already read dynamically from Friday's `night`
-// row (getPrevWorkingDayStr(Saturday) === Friday). So when materializing a
-// Saturday we drop the copied `night` row: keeping it would create a row
-// physically dated on Saturday that no read path ever consults for that
-// Saturday, but that summary/department-comparison endpoints (which sum ALL
-// shifts for a date without the presence table's night exclusion) would
-// double-count alongside the real Friday night figures.
+// Exception: Saturday. The factory only runs 1º turno on Saturdays — 2º/3º
+// turno for a Saturday view are already read dynamically from Friday's
+// `night`/`zero` rows (getPrevWorkingDayStr(Saturday) === Friday). So when
+// materializing a Saturday we drop the copied `night` and `zero` rows:
+// keeping them would create rows physically dated on Saturday that no read
+// path ever consults for that Saturday, but that summary/department-
+// comparison endpoints (which sum ALL shifts for a date without the
+// presence table's night/zero exclusion) would double-count alongside the
+// real Friday night/zero figures.
 //
 // Returns the list of dates that were materialized (empty if nothing to do).
 export async function ensureCarryForwardToToday(
@@ -69,7 +70,7 @@ export async function ensureCarryForwardToToday(
   let cursor = getNextWorkingDayStr(source.dateStr)
   while (cursor <= today) {
     const isSaturday = new Date(cursor + 'T12:00:00Z').getUTCDay() === 6
-    const recsToCopy = isSaturday ? source.recs.filter(r => r.shift !== 'night') : source.recs
+    const recsToCopy = isSaturday ? source.recs.filter(r => r.shift === 'day') : source.recs
 
     await prisma.dailyAttendance.createMany({
       data: recsToCopy.map(r => ({

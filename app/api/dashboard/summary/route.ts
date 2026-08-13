@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPrevWorkingDayStr } from '@/lib/utils'
+import { getPrevWorkingDayStr, chartShiftDates } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date')
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
   const prevDate = getPrevWorkingDayStr(date)
+  const shiftDates = chartShiftDates(date)
 
   const [records, prevRecords] = await Promise.all([
     prisma.dailyAttendance.findMany({
@@ -17,49 +18,45 @@ export async function GET(req: NextRequest) {
     }),
   ])
 
-  const totalQuadro = records.reduce((s: any, r: any) => s + r.quadro, 0)
-  const totalPlanned = records.reduce((s: any, r: any) => s + r.plannedAbsence, 0)
-  const totalUnplanned = records.reduce((s: any, r: any) => s + r.unplannedAbsence, 0)
+  // Per-shift breakdown.
+  // 1º Turno (day) → dia selecionado, exceto sábado/domingo (que não têm
+  // gráfico próprio e mostram sexta, igual ao 2º/3º turno).
+  // 2º Turno (night) e 3º Turno (zero) → sempre o dia útil anterior.
+  const byShift: Record<string, { quadro: number; planned: number; unplanned: number }> = {}
+
+  const daySource = shiftDates.day === date ? records : prevRecords
+  const dayRecs = daySource.filter(r => r.shift === 'day')
+  const nightRecs = prevRecords.filter(r => r.shift === 'night')
+  const zeroRecs = prevRecords.filter(r => r.shift === 'zero')
+
+  for (const [key, recs] of [['day', dayRecs], ['night', nightRecs], ['zero', zeroRecs]] as const) {
+    if (recs.length === 0) continue
+    byShift[key] = { quadro: 0, planned: 0, unplanned: 0 }
+    for (const r of recs) {
+      byShift[key].quadro += r.quadro
+      byShift[key].planned += r.plannedAbsence
+      byShift[key].unplanned += r.unplannedAbsence
+    }
+  }
+
+  // Totais e breakdown por departamento somam os três turnos já resolvidos
+  // acima (não os registros crus de `records`), para bater com o
+  // breakdown por turno mostrado na mesma página.
+  const effectiveRecords = [...dayRecs, ...nightRecs, ...zeroRecs]
+
+  const totalQuadro = effectiveRecords.reduce((s, r) => s + r.quadro, 0)
+  const totalPlanned = effectiveRecords.reduce((s, r) => s + r.plannedAbsence, 0)
+  const totalUnplanned = effectiveRecords.reduce((s, r) => s + r.unplannedAbsence, 0)
   const rate = totalQuadro > 0
     ? (totalQuadro - totalPlanned - totalUnplanned) / totalQuadro
     : 0
 
-  // Per-department breakdown (summed across shifts)
   const byDept: Record<string, { quadro: number; planned: number; unplanned: number }> = {}
-  for (const r of records) {
+  for (const r of effectiveRecords) {
     if (!byDept[r.departmentKey]) byDept[r.departmentKey] = { quadro: 0, planned: 0, unplanned: 0 }
     byDept[r.departmentKey].quadro += r.quadro
     byDept[r.departmentKey].planned += r.plannedAbsence
     byDept[r.departmentKey].unplanned += r.unplannedAbsence
-  }
-
-  // Per-shift breakdown
-  // 1º Turno (day) e 3º Turno (zero) → usa registros do dia atual
-  // 2º Turno (night) → usa registros do dia anterior
-  const byShift: Record<string, { quadro: number; planned: number; unplanned: number }> = {}
-  
-  // 1º Turno - dia atual
-  for (const r of records.filter(r => r.shift === 'day')) {
-    if (!byShift['day']) byShift['day'] = { quadro: 0, planned: 0, unplanned: 0 }
-    byShift['day'].quadro += r.quadro
-    byShift['day'].planned += r.plannedAbsence
-    byShift['day'].unplanned += r.unplannedAbsence
-  }
-
-  // 2º Turno - dia anterior (seguindo a mesma lógica da tabela de presença)
-  for (const r of prevRecords.filter(r => r.shift === 'night')) {
-    if (!byShift['night']) byShift['night'] = { quadro: 0, planned: 0, unplanned: 0 }
-    byShift['night'].quadro += r.quadro
-    byShift['night'].planned += r.plannedAbsence
-    byShift['night'].unplanned += r.unplannedAbsence
-  }
-
-  // 3º Turno - dia atual
-  for (const r of records.filter(r => r.shift === 'zero')) {
-    if (!byShift['zero']) byShift['zero'] = { quadro: 0, planned: 0, unplanned: 0 }
-    byShift['zero'].quadro += r.quadro
-    byShift['zero'].planned += r.plannedAbsence
-    byShift['zero'].unplanned += r.unplannedAbsence
   }
 
   return NextResponse.json({

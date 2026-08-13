@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const storeDate = shift === 'night' ? getPrevWorkingDayStr(date) : date
+    const storeDate = (shift === 'night' || shift === 'zero') ? getPrevWorkingDayStr(date) : date
     const storeDateObj = new Date(storeDate + 'T00:00:00.000Z')
 
     console.log('🔵 [POST] storeDate:', storeDate, 'storeDateObj:', storeDateObj)
