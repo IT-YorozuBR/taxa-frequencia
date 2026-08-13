@@ -47,6 +47,14 @@ interface PresenceChartData {
   turno3: { today: PresenceBar[]; previous: PresenceBar[] }
 }
 
+interface PeriodSummaryRow {
+  departmentKey: string
+  avgQuadro: number
+  totalPlanned: number
+  totalUnplanned: number
+  attendanceRate: number | null
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEPT_LABELS: Record<string, string> = {
@@ -96,29 +104,6 @@ function SingleShiftChart({ title, subtitle, bars, dateLabel }: SingleShiftChart
   const minRate = rates.length ? Math.min(...rates) : 0.5
   const yMin = Math.max(0, Math.floor((minRate - 0.05) * 20) / 20) // round down to nearest 5%
 
-  // Custom label rendered inside/above bar
-  const renderLabel = (props: {
-    x?: number; y?: number; width?: number; value?: number | null; index?: number
-  }) => {
-    const { x = 0, y = 0, width = 0, value, index = 0 } = props
-    if (value == null || value === 0) return <g key={`label-${index}`} />
-    const label = bars[index]?.label ?? ''
-    const pct = `${(value * 100).toFixed(1)}%`
-    const cx = x + width / 2
-    return (
-      <text
-        x={cx}
-        y={y - 6}
-        fill={DEPT_BAR_COLORS[label] ?? '#374151'}
-        fontSize={8.2}
-        fontWeight={700}
-        textAnchor="middle"
-      >
-        {label}; {pct}
-      </text>
-    )
-  }
-
   const chartData = bars.map(b => ({
     label: b.label,
     rate: b.rate,
@@ -126,7 +111,7 @@ function SingleShiftChart({ title, subtitle, bars, dateLabel }: SingleShiftChart
   }))
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="flex-1 min-w-[380px]">
       {/* Date header */}
       <div className="text-center mb-1">
         <div className="text-xl font-bold text-gray-900 tracking-wide">{dateLabel}</div>
@@ -135,15 +120,16 @@ function SingleShiftChart({ title, subtitle, bars, dateLabel }: SingleShiftChart
       <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={chartData}
-          margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
-          barCategoryGap="16%"
+          margin={{ top: 10, right: 16, left: 0, bottom: 4 }}
+          barCategoryGap="28%"
         >
           <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#e5e7eb" />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 11, fontWeight: 700, fill: '#374151' }}
+            tick={{ fontSize: 10, fontWeight: 700, fill: '#374151' }}
             tickLine={false}
             axisLine={{ stroke: '#d1d5db' }}
+            interval={0}
           />
           <YAxis
             tickFormatter={(v: number) => `${(v * 100).toFixed(1)}%`}
@@ -160,7 +146,7 @@ function SingleShiftChart({ title, subtitle, bars, dateLabel }: SingleShiftChart
             }
             cursor={{ fill: 'rgba(0,0,0,0.04)' }}
           />
-          <Bar dataKey="rate" radius={[2, 2, 0, 0]} label={renderLabel} isAnimationActive={false}>
+          <Bar dataKey="rate" radius={[2, 2, 0, 0]} isAnimationActive={false}>
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} />
             ))}
@@ -188,7 +174,7 @@ function PresenceChartPanel({ loading, data, selectedDate }: PresenceChartPanelP
       {loading || !data ? (
         <Spinner />
       ) : (
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 md:overflow-x-auto md:pb-2">
           <SingleShiftChart
             title="1º Turno"
             subtitle="PRESENÇA 1º TURNO"
@@ -497,6 +483,29 @@ export default function DashboardPage() {
   const [loadingDeptComp, setLoadingDeptComp] = useState(true)
   const [loadingDeptCompDay, setLoadingDeptCompDay] = useState(true)
   const [loadingPresence, setLoadingPresence] = useState(true)
+
+  // ── Resumo por setor num período (data inicial/final escolhidos à parte) ──
+  const [periodEnd, setPeriodEnd] = useState(todayStr())
+  const [periodStart, setPeriodStart] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 29)
+    return toLocalDateStr(d)
+  })
+  const [periodSummary, setPeriodSummary] = useState<PeriodSummaryRow[]>([])
+  const [loadingPeriod, setLoadingPeriod] = useState(true)
+
+  const fetchPeriodSummary = useCallback(async (start: string, end: string) => {
+    setLoadingPeriod(true)
+    const res = await fetch(`/api/dashboard/period-summary?startDate=${start}&endDate=${end}`)
+    const d = await res.json()
+    setPeriodSummary(d.data ?? [])
+    setLoadingPeriod(false)
+  }, [])
+
+  useEffect(() => {
+    if (periodStart > periodEnd) return
+    fetchPeriodSummary(periodStart, periodEnd)
+  }, [periodStart, periodEnd, fetchPeriodSummary])
 
   const fetchSummary = useCallback(async (date: string) => {
     setLoadingSummary(true)
@@ -873,6 +882,75 @@ export default function DashboardPage() {
         </SectionCard>
 
       </div>
+
+      {/* ── Resumo por Setor num Período ── */}
+      <SectionCard title={`Resumo por Setor — Período  |  期間別部門集計`}>
+        <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+          <label className="text-gray-700 font-medium">De:</label>
+          <input
+            type="date"
+            value={periodStart}
+            max={periodEnd}
+            onChange={e => setPeriodStart(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <label className="text-gray-700 font-medium">Até:</label>
+          <input
+            type="date"
+            value={periodEnd}
+            min={periodStart}
+            max={todayStr()}
+            onChange={e => setPeriodEnd(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {loadingPeriod ? <Spinner /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-1.5 font-semibold text-gray-500 border border-gray-200 min-w-[160px]">Setor</th>
+                  <th className="text-center px-3 py-1.5 font-semibold text-gray-500 border border-gray-200">Quadro médio</th>
+                  <th className="text-center px-3 py-1.5 font-semibold text-amber-700 border border-gray-200">Aus. Planejada</th>
+                  <th className="text-center px-3 py-1.5 font-semibold text-red-600 border border-gray-200">Falta s/ Aviso</th>
+                  <th className="text-center px-3 py-1.5 font-semibold text-blue-700 border border-gray-200">Taxa de Presença</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...periodSummary]
+                  .sort((a, b) => (a.attendanceRate ?? 1) - (b.attendanceRate ?? 1)) // pior primeiro
+                  .map(row => (
+                    <tr key={row.departmentKey} className="hover:bg-gray-50">
+                      <td className="px-3 py-1.5 font-semibold text-gray-700 border border-gray-200">
+                        {DEPT_LABELS[row.departmentKey] ?? row.departmentKey}
+                      </td>
+                      <td className="px-3 py-1.5 text-center text-gray-700 border border-gray-200">
+                        {row.avgQuadro.toFixed(1)}
+                      </td>
+                      <td className="px-3 py-1.5 text-center text-amber-700 border border-gray-200">
+                        {row.totalPlanned}
+                      </td>
+                      <td className="px-3 py-1.5 text-center text-red-600 border border-gray-200">
+                        {row.totalUnplanned}
+                      </td>
+                      <td className={`px-3 py-1.5 text-center font-semibold border border-gray-200 ${
+                        row.attendanceRate == null ? 'text-gray-300'
+                          : row.attendanceRate >= 0.95 ? 'text-blue-700' : 'text-red-600'
+                      }`}>
+                        {row.attendanceRate != null ? fmtPct(row.attendanceRate) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-gray-400 mt-3">
+          Quadro médio = média diária no período · Faltas = total acumulado no período ·
+          Taxa = presença agregada do período inteiro
+        </p>
+      </SectionCard>
 
       {/* ── Footer note ── */}
       <p className="text-xs text-gray-400 text-center pb-4">
