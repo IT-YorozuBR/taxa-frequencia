@@ -7,8 +7,9 @@ frequência por turno, para faltas de tipo indeterminado (afastamento, INSS, ent
 diferente de falta planejada e falta sem aviso que já existem).
 
 **Nome decidido para o campo:** `indeterminateAbsence` (segue o padrão `plannedAbsence` /
-`unplannedAbsence` no schema). Rótulo sugerido na UI: "Afastamento" (PT), abreviado
-"Afast." no cabeçalho curto da tabela, JP "休職" (kyūshoku) — segue o padrão "Aus. plan." /
+`unplannedAbsence` no schema, nome interno inalterado). Rótulo na UI: "Diversos" (PT), JP
+"その他" (sonota, "outros") — trocado de "Afastamento"/"Afast." em 2026-08-20 a pedido do
+usuário, pois o campo cobre mais do que afastamento/INSS. Segue o padrão "Aus. plan." /
 "Falta s/a" já usado em `components/AttendanceTable.tsx`.
 
 **Decisão do usuário:** essa falta indeterminada DEVE afetar a taxa de frequência (mesmo
