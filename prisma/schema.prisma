@@ -15,10 +15,11 @@ model DailyAttendance {
   date             DateTime @db.Date
   departmentKey    String
   shift            String   // "day", "night", "zero"
-  quadro           Float    @default(0)
-  plannedAbsence   Float    @default(0)
-  unplannedAbsence Float    @default(0)
-  updatedAt        DateTime @updatedAt
+  quadro               Float    @default(0)
+  plannedAbsence       Float    @default(0)
+  unplannedAbsence     Float    @default(0)
+  indeterminateAbsence Float    @default(0)
+  updatedAt            DateTime @updatedAt
 
   @@unique([date, departmentKey, shift])
 }

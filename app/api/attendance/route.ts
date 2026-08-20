@@ -47,9 +47,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence } = body
+    const { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence } = body
 
-    console.log('🔵 [POST] Recebido:', { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence })
+    console.log('🔵 [POST] Recebido:', { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence })
 
     if (!date || !departmentKey || !shift) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           quadro: quadro ?? 0,
           plannedAbsence: plannedAbsence ?? 0,
           unplannedAbsence: unplannedAbsence ?? 0,
+          indeterminateAbsence: indeterminateAbsence ?? 0,
         },
       })
 
@@ -143,6 +144,7 @@ export async function POST(req: NextRequest) {
             quadro: r.quadro,
             plannedAbsence: r.plannedAbsence,
             unplannedAbsence: r.unplannedAbsence,
+            indeterminateAbsence: r.indeterminateAbsence,
           })),
           skipDuplicates: true
         })
@@ -175,11 +177,13 @@ export async function POST(req: NextRequest) {
         quadro: quadro ?? 0,
         plannedAbsence: plannedAbsence ?? 0,
         unplannedAbsence: unplannedAbsence ?? 0,
+        indeterminateAbsence: indeterminateAbsence ?? 0,
       },
       update: {
         quadro: quadro ?? 0,
         plannedAbsence: plannedAbsence ?? 0,
         unplannedAbsence: unplannedAbsence ?? 0,
+        indeterminateAbsence: indeterminateAbsence ?? 0,
       },
     })
 

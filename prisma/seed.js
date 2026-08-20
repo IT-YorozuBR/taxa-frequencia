@@ -89,6 +89,7 @@ async function main() {
             quadro,
             plannedAbsence: 0,
             unplannedAbsence: 0,
+            indeterminateAbsence: 0,
           },
         })
 

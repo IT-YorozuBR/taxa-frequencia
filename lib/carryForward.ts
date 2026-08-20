@@ -7,6 +7,7 @@ export type Rec = {
   quadro: number
   plannedAbsence: number
   unplannedAbsence: number
+  indeterminateAbsence: number
 }
 
 // Find the most recent working day (on or before `fromDate`) that has records.
@@ -80,6 +81,7 @@ export async function ensureCarryForwardToToday(
         quadro: r.quadro,
         plannedAbsence: r.plannedAbsence,
         unplannedAbsence: r.unplannedAbsence,
+        indeterminateAbsence: r.indeterminateAbsence,
       })),
       skipDuplicates: true, // safe under concurrent requests (ON CONFLICT DO NOTHING)
     })

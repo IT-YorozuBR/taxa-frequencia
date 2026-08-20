@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
     byDate[key].push(r)
   }
 
-  type Acc = { quadro: number; planned: number; unplanned: number; days: Set<string> }
+  type Acc = { quadro: number; planned: number; unplanned: number; indeterminate: number; days: Set<string> }
   const byDept: Record<string, Acc> = {}
   for (const key of ALL_LEAF_KEYS) {
-    byDept[key] = { quadro: 0, planned: 0, unplanned: 0, days: new Set() }
+    byDept[key] = { quadro: 0, planned: 0, unplanned: 0, indeterminate: 0, days: new Set() }
   }
 
   const addRecs = (recs: typeof records | undefined, shift: string, displayDate: string) => {
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
       byDept[r.departmentKey].quadro += r.quadro
       byDept[r.departmentKey].planned += r.plannedAbsence
       byDept[r.departmentKey].unplanned += r.unplannedAbsence
+      byDept[r.departmentKey].indeterminate += r.indeterminateAbsence
       byDept[r.departmentKey].days.add(displayDate)
     }
   }
@@ -69,12 +70,13 @@ export async function GET(req: NextRequest) {
   const result = ALL_LEAF_KEYS.map(key => {
     const acc = byDept[key]
     const avgQuadro = acc.days.size > 0 ? acc.quadro / acc.days.size : 0
-    const rate = acc.quadro > 0 ? (acc.quadro - acc.planned - acc.unplanned) / acc.quadro : null
+    const rate = acc.quadro > 0 ? (acc.quadro - acc.planned - acc.unplanned - acc.indeterminate) / acc.quadro : null
     return {
       departmentKey: key,
       avgQuadro,
       totalPlanned: acc.planned,
       totalUnplanned: acc.unplanned,
+      totalIndeterminate: acc.indeterminate,
       attendanceRate: rate,
     }
   })

@@ -52,7 +52,7 @@ export default function EditableCell({
 
   return (
     <span
-      className={`cursor-pointer hover:bg-blue-50 rounded px-1 font-normal text-gray-900 ${className}`}
+      className={`cursor-pointer hover:bg-blue-50 rounded px-1.5 py-0.5 font-medium text-gray-900 ${className}`}
       onClick={startEdit}
       title="Clique para editar"
     >

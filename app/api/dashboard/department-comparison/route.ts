@@ -17,10 +17,10 @@ const GROUPS: { label: string; keys: string[] }[] = [
   { label: 'PRENSA', keys: ['prensa', 'cald', 'ferr'] },
 ]
 
-function calcRate(records: { quadro: number; plannedAbsence: number; unplannedAbsence: number }[], keys: string[], allRecords: typeof records & { departmentKey: string }[]) {
+function calcRate(records: { quadro: number; plannedAbsence: number; unplannedAbsence: number; indeterminateAbsence: number }[], keys: string[], allRecords: typeof records & { departmentKey: string }[]) {
   const filtered = (allRecords as (typeof records[0] & { departmentKey: string })[]).filter(r => keys.includes(r.departmentKey))
   const totalQ = filtered.reduce((s, r) => s + r.quadro, 0)
-  const totalA = filtered.reduce((s, r) => s + r.plannedAbsence + r.unplannedAbsence, 0)
+  const totalA = filtered.reduce((s, r) => s + r.plannedAbsence + r.unplannedAbsence + r.indeterminateAbsence, 0)
   return totalQ > 0 ? (totalQ - totalA) / totalQ : null
 }
 

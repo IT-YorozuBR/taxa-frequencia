@@ -34,14 +34,15 @@ export async function GET(req: NextRequest) {
   }
 
   const sum = (recs: typeof records | undefined, shift: string) => {
-    if (!recs) return { quadro: 0, planned: 0, unplanned: 0 }
+    if (!recs) return { quadro: 0, planned: 0, unplanned: 0, indeterminate: 0 }
     return recs
       .filter(r => r.shift === shift)
       .reduce((acc, r) => ({
         quadro: acc.quadro + r.quadro,
         planned: acc.planned + r.plannedAbsence,
         unplanned: acc.unplanned + r.unplannedAbsence,
-      }), { quadro: 0, planned: 0, unplanned: 0 })
+        indeterminate: acc.indeterminate + r.indeterminateAbsence,
+      }), { quadro: 0, planned: 0, unplanned: 0, indeterminate: 0 })
   }
 
   // Build array of all calendar days in range (including days with no data)
@@ -60,9 +61,10 @@ export async function GET(req: NextRequest) {
     const quadro = day.quadro + night.quadro + zero.quadro
     const planned = day.planned + night.planned + zero.planned
     const unplanned = day.unplanned + night.unplanned + zero.unplanned
+    const indeterminate = day.indeterminate + night.indeterminate + zero.indeterminate
 
     const rate = quadro > 0
-      ? (quadro - planned - unplanned) / quadro
+      ? (quadro - planned - unplanned - indeterminate) / quadro
       : null  // null = no data recorded for that day
 
     result.push({
@@ -71,6 +73,7 @@ export async function GET(req: NextRequest) {
       totalQuadro: quadro,
       totalPlanned: planned,
       totalUnplanned: unplanned,
+      totalIndeterminate: indeterminate,
     })
     cursor.setDate(cursor.getDate() + 1)
   }

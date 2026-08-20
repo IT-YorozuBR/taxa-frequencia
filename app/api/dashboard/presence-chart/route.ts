@@ -14,14 +14,14 @@ const GROUPS = [
   { label: 'TOTAL',   keys: ['adm','rh','fin','ti','sst','log','comp','com','eng','pint_int','manut','qual','prensa','cald','ferr','mont','pint','pick'] },
 ]
 
-type Rec = { departmentKey: string; shift: string; quadro: number; plannedAbsence: number; unplannedAbsence: number }
+type Rec = { departmentKey: string; shift: string; quadro: number; plannedAbsence: number; unplannedAbsence: number; indeterminateAbsence: number }
 
 function rate(records: Rec[], keys: string[], shift: string | null): number | null {
   const filtered = records.filter(r =>
     keys.includes(r.departmentKey) && (shift == null || r.shift === shift)
   )
   const q = filtered.reduce((s, r) => s + r.quadro, 0)
-  const a = filtered.reduce((s, r) => s + r.plannedAbsence + r.unplannedAbsence, 0)
+  const a = filtered.reduce((s, r) => s + r.plannedAbsence + r.unplannedAbsence + r.indeterminateAbsence, 0)
   return q > 0 ? (q - a) / q : null
 }
 

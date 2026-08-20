@@ -4,17 +4,18 @@ export interface ShiftData {
   quadro: number
   plannedAbsence: number
   unplannedAbsence: number
+  indeterminateAbsence: number
 }
 
 export type DeptShiftData = Record<string, Record<Shift, ShiftData>>
 
 export function calcAttendanceRate(s: ShiftData): number {
   if (!s.quadro || s.quadro === 0) return 0
-  return (s.quadro - (s.plannedAbsence + s.unplannedAbsence)) / s.quadro
+  return (s.quadro - (s.plannedAbsence + s.unplannedAbsence + s.indeterminateAbsence)) / s.quadro
 }
 
 export function emptyShift(): ShiftData {
-  return { quadro: 0, plannedAbsence: 0, unplannedAbsence: 0 }
+  return { quadro: 0, plannedAbsence: 0, unplannedAbsence: 0, indeterminateAbsence: 0 }
 }
 
 export function sumShifts(shifts: ShiftData[]): ShiftData {
@@ -23,6 +24,7 @@ export function sumShifts(shifts: ShiftData[]): ShiftData {
       quadro: acc.quadro + s.quadro,
       plannedAbsence: acc.plannedAbsence + s.plannedAbsence,
       unplannedAbsence: acc.unplannedAbsence + s.unplannedAbsence,
+      indeterminateAbsence: acc.indeterminateAbsence + s.indeterminateAbsence,
     }),
     emptyShift()
   )
@@ -111,6 +113,7 @@ type RawRecord = {
   quadro: number
   plannedAbsence: number
   unplannedAbsence: number
+  indeterminateAbsence: number
 }
 
 export function buildDeptShiftData(records: RawRecord[]): DeptShiftData {
@@ -127,6 +130,7 @@ export function buildDeptShiftData(records: RawRecord[]): DeptShiftData {
       quadro: r.quadro,
       plannedAbsence: r.plannedAbsence,
       unplannedAbsence: r.unplannedAbsence,
+      indeterminateAbsence: r.indeterminateAbsence,
     }
   }
   return result
@@ -151,6 +155,7 @@ export function buildMixedDeptShiftData(
       quadro: r.quadro,
       plannedAbsence: r.plannedAbsence,
       unplannedAbsence: r.unplannedAbsence,
+      indeterminateAbsence: r.indeterminateAbsence,
     }
   }
 
@@ -161,6 +166,7 @@ export function buildMixedDeptShiftData(
       quadro: r.quadro,
       plannedAbsence: r.plannedAbsence,
       unplannedAbsence: r.unplannedAbsence,
+      indeterminateAbsence: r.indeterminateAbsence,
     }
   }
 

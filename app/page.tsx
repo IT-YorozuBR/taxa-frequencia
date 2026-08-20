@@ -71,7 +71,7 @@ export default function Home() {
   const handleCellChange = useCallback(async (
     deptKey: string,
     shift: Shift,
-    field: 'quadro' | 'plannedAbsence' | 'unplannedAbsence',
+    field: 'quadro' | 'plannedAbsence' | 'unplannedAbsence' | 'indeterminateAbsence',
     value: number
   ) => {
     // ✅ Pegar TODOS os valores atuais (não apenas o alterado)
@@ -81,6 +81,7 @@ export default function Home() {
       quadro: field === 'quadro' ? value : (current.quadro ?? 0),
       plannedAbsence: field === 'plannedAbsence' ? value : (current.plannedAbsence ?? 0),
       unplannedAbsence: field === 'unplannedAbsence' ? value : (current.unplannedAbsence ?? 0),
+      indeterminateAbsence: field === 'indeterminateAbsence' ? value : (current.indeterminateAbsence ?? 0),
     }
 
     // Atualizar estado local (optimistic update)
@@ -112,6 +113,7 @@ export default function Home() {
           quadro: allData.quadro,
           plannedAbsence: allData.plannedAbsence,
           unplannedAbsence: allData.unplannedAbsence,
+          indeterminateAbsence: allData.indeterminateAbsence,
         }),
       })
 
