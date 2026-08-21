@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getPrevWorkingDayStr, getTodayStr } from '@/lib/utils'
 import { findLastDayWithData, ensureCarryForwardToToday } from '@/lib/carryForward'
+import { logAudit } from '@/lib/audit'
+import { deptLabel, shiftLabel } from '@/lib/labels'
+import { validateAttendancePayload } from '@/lib/validation'
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,13 +50,17 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence } = body
+
+    const validation = validateAttendancePayload(body)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+    const { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence } = validation.value
 
     console.log('🔵 [POST] Recebido:', { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence })
 
-    if (!date || !departmentKey || !shift) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+    const actorId = req.headers.get('x-user-id')
+    const actorUsername = req.headers.get('x-user-username') ?? 'desconhecido'
 
     const today = getTodayStr()
     const requestDate = new Date(date + 'T00:00:00Z')
@@ -105,6 +112,31 @@ export async function POST(req: NextRequest) {
       })
 
       console.log('🔵 [POST] Registro atualizado:', record)
+
+      await logAudit({
+        userId: actorId,
+        username: actorUsername,
+        action: 'attendance.update',
+        target: `${deptLabel(departmentKey)} — ${shiftLabel(shift)} (${storeDate})`,
+        details: {
+          departmentKey,
+          shift,
+          date: storeDate,
+          before: {
+            quadro: existing.quadro,
+            plannedAbsence: existing.plannedAbsence,
+            unplannedAbsence: existing.unplannedAbsence,
+            indeterminateAbsence: existing.indeterminateAbsence,
+          },
+          after: {
+            quadro: record.quadro,
+            plannedAbsence: record.plannedAbsence,
+            unplannedAbsence: record.unplannedAbsence,
+            indeterminateAbsence: record.indeterminateAbsence,
+          },
+        },
+      })
+
       return NextResponse.json(record, { status: 201 })
     }
 
@@ -162,6 +194,20 @@ export async function POST(req: NextRequest) {
     // ainda não existe aqui, e um update puro falharia com P2025.
     console.log('🔵 [POST] Agora vai SALVAR o registro que foi editado')
 
+    // Captura o estado logo antes do upsert final: pode já existir (o
+    // backfill acima acabou de recriá-lo com valores copiados do dia
+    // anterior) ou ser null (setor/turno inédito) — para o log de
+    // auditoria refletir o "antes" real.
+    const beforeUpsert = await prisma.dailyAttendance.findUnique({
+      where: {
+        date_departmentKey_shift: {
+          date: storeDateObj,
+          departmentKey,
+          shift,
+        },
+      },
+    })
+
     const record = await prisma.dailyAttendance.upsert({
       where: {
         date_departmentKey_shift: {
@@ -188,6 +234,30 @@ export async function POST(req: NextRequest) {
     })
 
     console.log('🔵 [POST] Registro final:', record)
+
+    await logAudit({
+      userId: actorId,
+      username: actorUsername,
+      action: 'attendance.update',
+      target: `${deptLabel(departmentKey)} — ${shiftLabel(shift)} (${storeDate})`,
+      details: {
+        departmentKey,
+        shift,
+        date: storeDate,
+        before: beforeUpsert ? {
+          quadro: beforeUpsert.quadro,
+          plannedAbsence: beforeUpsert.plannedAbsence,
+          unplannedAbsence: beforeUpsert.unplannedAbsence,
+          indeterminateAbsence: beforeUpsert.indeterminateAbsence,
+        } : null,
+        after: {
+          quadro: record.quadro,
+          plannedAbsence: record.plannedAbsence,
+          unplannedAbsence: record.unplannedAbsence,
+          indeterminateAbsence: record.indeterminateAbsence,
+        },
+      },
+    })
 
     return NextResponse.json(record, { status: 201 })
   } catch (error) {

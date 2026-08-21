@@ -16,5 +16,8 @@ until npx prisma db push --skip-generate --accept-data-loss; do
   sleep 3
 done
 
-echo "[entrypoint] Schema sincronizado. Iniciando aplicação..."
+echo "[entrypoint] Schema sincronizado. Garantindo conta admin padrão..."
+node prisma/seedAdmin.js || echo "[entrypoint] Aviso: falha ao rodar seedAdmin.js (não bloqueante)." >&2
+
+echo "[entrypoint] Iniciando aplicação..."
 exec "$@"

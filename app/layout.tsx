@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
+import Shell from '@/components/Shell'
 
 export const metadata: Metadata = {
   title: '出勤率 / Taxa de Frequência',
@@ -15,8 +15,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="bg-gray-50 min-h-screen">
-        <Navbar />
-        <div className="pt-16">{children}</div>
+        <Shell>{children}</Shell>
       </body>
     </html>
   )

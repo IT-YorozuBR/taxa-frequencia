@@ -23,3 +23,23 @@ model DailyAttendance {
 
   @@unique([date, departmentKey, shift])
 }
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("user") // "admin" | "user"
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String?  // null = ação de sistema (sem usuário logado, ex.: cron)
+  username  String   // denormalizado — sobrevive à exclusão do usuário
+  action    String   // ex.: "attendance.update", "user.create", "user.delete"
+  target    String   // descrição legível do que foi alterado
+  details   Json?    // payload estruturado (before/after, etc.) — nunca senhas
+
+  @@index([createdAt])
+}

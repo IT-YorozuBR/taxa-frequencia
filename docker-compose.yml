@@ -41,6 +41,10 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       CRON_SECRET: ${CRON_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      # Temporário — ver comentário em .env.docker.example. Default "false"
+      # se a variável não estiver definida (exige HTTPS, o comportamento seguro).
+      AUTH_ALLOW_INSECURE_COOKIE: ${AUTH_ALLOW_INSECURE_COOKIE:-false}
     # Sem "ports": o app não fica publicado no host, só acessível dentro do
     # Docker. NPM alcança via rede compartilhada "npm_network" abaixo.
     networks:
@@ -62,6 +66,25 @@ services:
     entrypoint: ["sh", "/cron-entrypoint.sh"]
     depends_on:
       - app
+
+  # Backup diário do Postgres via pg_dump (ver docker/backup-entrypoint.sh
+  # para o procedimento de restauração). Sem isso, a única cópia dos dados
+  # é o volume pgdata_pg18 — se ele corromper ou for apagado, perde tudo.
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./db-backups:/backups
+      - ./docker/backup-entrypoint.sh:/backup-entrypoint.sh:ro
+    entrypoint: ["sh", "/backup-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata_pg18:
