@@ -141,7 +141,7 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-blue-900">Administração / 管理</h1>
           <p className="text-gray-500 text-sm mt-1">Gerenciar contas de acesso ao sistema</p>
         </div>
-        <Link href="/admin/logs" className="text-sm text-blue-700 hover:text-blue-900 font-medium">
+        <Link href="/admin/audit-logs" className="text-sm text-blue-700 hover:text-blue-900 font-medium">
           Ver logs de auditoria →
         </Link>
       </div>

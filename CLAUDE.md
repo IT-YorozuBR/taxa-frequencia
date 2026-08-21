@@ -1,5 +1,26 @@
 # Contexto do projeto
 
+## ⚠️ Bug: pasta `app/admin/logs/` era ignorada pelo git — CORRIGIDO em 2026-08-21
+
+O `.gitignore` do projeto já tinha (antes de qualquer mudança minha) uma regra genérica
+`logs/` na seção "# Logs", pensada pra ignorar pastas de log de build/runtime. Eu criei a
+página de auditoria em `app/admin/logs/page.tsx` sem checar isso, e essa regra ignorou a
+pasta INTEIRA silenciosamente — mesmo sendo código de aplicação de verdade, mesmo com
+`git add -A`. A API (`app/api/admin/audit-logs/route.ts`, nome diferente, sem colidir)
+foi commitada normalmente; só a página sumiu. Resultado: usuário fez deploy em produção
+e a página deu 404, porque o arquivo nunca chegou no repositório.
+
+**Corrigido** renomeando a pasta pra `app/admin/audit-logs/` (consistente com o nome já
+usado na API, e fora do caminho da regra `logs/` do `.gitignore` — essa regra só bate no
+componente de path exatamente igual a `logs`, não em algo que contém "logs" como parte do
+nome). Link em `app/admin/page.tsx` atualizado de `/admin/logs` para `/admin/audit-logs`.
+
+**Lição para o futuro:** antes de criar qualquer arquivo/pasta nova neste projeto, checar
+se o nome não colide com algum padrão do `.gitignore` — rodar `git status --short` (ou
+`git check-ignore -v <caminho>`) logo depois de criar arquivos novos pra confirmar que
+eles aparecem como untracked/staged, não como "nada a mostrar" (que é o sintoma silencioso
+de estarem sendo ignorados).
+
 ## Simulação completa de deploy antes da produção — 2026-08-21
 
 Antes do usuário fazer o deploy real, rodei o deploy inteiro localmente com Docker
@@ -133,7 +154,8 @@ abaixo). `change-password` está fora do middleware (rota pública na allowlist)
 a sessão já verificada manualmente ali dentro.
 
 **Leitura:** `GET /api/admin/audit-logs` (paginação por cursor, `limit` padrão 50 máx 200,
-filtros opcionais `action` e `username`) → página `app/admin/logs/page.tsx`, lista com
+filtros opcionais `action` e `username`) → página `app/admin/audit-logs/page.tsx`
+(**não** `app/admin/logs/` — ver "Bug: pasta `logs/` ignorada pelo git" abaixo), lista com
 badge colorido por tipo de ação, resumo de uma linha (diff formatado pra attendance,
 papel pra criação/exclusão de usuário) e JSON completo expandível por item. Link a partir
 de `/admin` ("Ver logs de auditoria →"). Protegida automaticamente pelo middleware (mesma
