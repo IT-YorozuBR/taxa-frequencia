@@ -94,9 +94,9 @@ function ShiftCells({
 
 export default function AttendanceTable({ data, date, prevDate, onCellChange }: AttendanceTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl shadow border border-gray-300">
+    <div className="overflow-auto rounded-xl shadow border border-gray-300 max-h-[88vh]">
       <table className="text-sm border-collapse w-full">
-        <thead>
+        <thead className="sticky top-0 z-20 shadow-md">
           <tr>
             <th className="border border-gray-300 bg-blue-900 text-white px-3 py-3 text-left text-sm sm:text-base font-semibold tracking-wide" rowSpan={2} colSpan={2}>
               Organograma / 組織
@@ -126,7 +126,7 @@ export default function AttendanceTable({ data, date, prevDate, onCellChange }: 
                 <th key={`${s.key}-q`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Quadro<br />人員</th>
                 <th key={`${s.key}-p`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Aus. plan.<br />計画</th>
                 <th key={`${s.key}-u`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Falta s/a<br />突発</th>
-                <th key={`${s.key}-i`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Diversos<br />その他</th>
+                <th key={`${s.key}-i`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Diversos. Repor<br />その他</th>
                 <th key={`${s.key}-r`} className="border border-gray-300 bg-gray-100 text-center px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">Taxa<br />出勤率</th>
               </>
             ))}

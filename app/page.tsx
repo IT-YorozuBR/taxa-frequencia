@@ -157,7 +157,7 @@ export default function Home() {
   const headerColor = hasLocalChanges ? 'border-2 border-green-500' : ''
 
   return (
-    <main className="p-4 md:p-8 max-w-[1400px] mx-auto">
+    <main className="p-4 md:p-8 max-w-[1900px] mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
