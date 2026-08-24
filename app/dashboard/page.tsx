@@ -15,9 +15,10 @@ interface Summary {
   totalQuadro: number
   totalPlanned: number
   totalUnplanned: number
+  totalIndeterminate: number
   attendanceRate: number
-  byDept: Record<string, { quadro: number; planned: number; unplanned: number }>
-  byShift: Record<string, { quadro: number; planned: number; unplanned: number }>
+  byDept: Record<string, { quadro: number; planned: number; unplanned: number; indeterminate: number }>
+  byShift: Record<string, { quadro: number; planned: number; unplanned: number; indeterminate: number }>
 }
 
 interface TrendPoint {
@@ -26,6 +27,7 @@ interface TrendPoint {
   totalQuadro: number
   totalPlanned: number
   totalUnplanned: number
+  totalIndeterminate: number
 }
 
 interface DeptCompPoint {
@@ -52,6 +54,7 @@ interface PeriodSummaryRow {
   avgQuadro: number
   totalPlanned: number
   totalUnplanned: number
+  totalIndeterminate: number
   attendanceRate: number | null
 }
 
@@ -74,7 +77,7 @@ const SHIFT_COLORS: Record<string, string> = {
   day: '#f59e0b', night: '#4f46e5', zero: '#64748b',
 }
 
-const PIE_COLORS = ['#f59e0b', '#ef4444', '#22c55e']
+const PIE_COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
 
 // Colors matching the Excel chart — one per department in GROUPS order
 // OUTROS, PCP, ENG, QA, PRENSA, PROD, MANUT, TOTAL
@@ -218,7 +221,7 @@ function MetricCard({
   labelJp: string
   value: string
   sub?: string
-  color?: 'blue' | 'green' | 'amber' | 'red'
+  color?: 'blue' | 'green' | 'amber' | 'red' | 'purple'
   icon: React.ReactNode
 }) {
   const palette = {
@@ -226,6 +229,7 @@ function MetricCard({
     green: { bg: 'bg-green-50', border: 'border-green-200', icon: 'bg-green-600', text: 'text-green-800' },
     amber: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'bg-amber-500', text: 'text-amber-800' },
     red: { bg: 'bg-red-50', border: 'border-red-200', icon: 'bg-red-600', text: 'text-red-800' },
+    purple: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'bg-purple-600', text: 'text-purple-800' },
   }[color]
 
   return (
@@ -564,12 +568,13 @@ export default function DashboardPage() {
 
   // Absence pie data
   const present = summary
-    ? summary.totalQuadro - summary.totalPlanned - summary.totalUnplanned
+    ? summary.totalQuadro - summary.totalPlanned - summary.totalUnplanned - summary.totalIndeterminate
     : 0
   const absencePieData = summary ? [
     { name: 'Presentes', value: Math.max(0, present) },
     { name: 'Aus. Planejada', value: summary.totalPlanned },
     { name: 'Falta s/ Aviso', value: summary.totalUnplanned },
+    { name: 'Diversos', value: summary.totalIndeterminate },
   ] : []
 
   // Dept bar chart — rate per dept
@@ -577,8 +582,8 @@ export default function DashboardPage() {
     ? Object.entries(summary.byDept)
       .map(([key, d]) => ({
         name: DEPT_LABELS[key] ?? key,
-        rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
-        absences: d.planned + d.unplanned,
+        rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned - d.indeterminate) / d.quadro : 0,
+        absences: d.planned + d.unplanned + d.indeterminate,
       }))
       .filter(d => d.absences > 0 || d.rate > 0)
       .sort((a, b) => a.rate - b.rate)  // worst first
@@ -592,7 +597,8 @@ export default function DashboardPage() {
       quadro: d.quadro,
       planned: d.planned,
       unplanned: d.unplanned,
-      rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned) / d.quadro : 0,
+      indeterminate: d.indeterminate,
+      rate: d.quadro > 0 ? (d.quadro - d.planned - d.unplanned - d.indeterminate) / d.quadro : 0,
     }))
     : []
 
@@ -664,7 +670,7 @@ export default function DashboardPage() {
 
       {/* ── KPI Cards ── */}
       {loadingSummary ? <Spinner /> : summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* <MetricCard
             label="Quadro Total" labelJp="総人員"
             value={summary.totalQuadro.toString()}
@@ -685,6 +691,13 @@ export default function DashboardPage() {
             sub="ausências não previstas"
             color="red"
             icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+          />
+          <MetricCard
+            label="Diversos" labelJp="その他"
+            value={summary.totalIndeterminate.toString()}
+            sub="afastamento, INSS, a repor"
+            color="purple"
+            icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
           <MetricCard
             label="Taxa de Presença" labelJp="出勤率"
@@ -862,7 +875,8 @@ export default function DashboardPage() {
                   <Tooltip />
                   <Legend iconType="circle" iconSize={8} />
                   <Bar dataKey="planned" name="Aus. Planejada" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="unplanned" name="Falta s/ Aviso" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="unplanned" name="Falta s/ Aviso" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="indeterminate" name="Diversos" stackId="a" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
               {/* Shift rate summary */}
@@ -914,6 +928,7 @@ export default function DashboardPage() {
                   <th className="text-center px-3 py-1.5 font-semibold text-gray-500 border border-gray-200">Quadro médio</th>
                   <th className="text-center px-3 py-1.5 font-semibold text-amber-700 border border-gray-200">Aus. Planejada</th>
                   <th className="text-center px-3 py-1.5 font-semibold text-red-600 border border-gray-200">Falta s/ Aviso</th>
+                  <th className="text-center px-3 py-1.5 font-semibold text-purple-700 border border-gray-200">Diversos</th>
                   <th className="text-center px-3 py-1.5 font-semibold text-blue-700 border border-gray-200">Taxa de Presença</th>
                 </tr>
               </thead>
@@ -933,6 +948,9 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-3 py-1.5 text-center text-red-600 border border-gray-200">
                         {row.totalUnplanned}
+                      </td>
+                      <td className="px-3 py-1.5 text-center text-purple-700 border border-gray-200">
+                        {row.totalIndeterminate}
                       </td>
                       <td className={`px-3 py-1.5 text-center font-semibold border border-gray-200 ${
                         row.attendanceRate == null ? 'text-gray-300'
