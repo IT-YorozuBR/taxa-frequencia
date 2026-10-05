@@ -236,4 +236,58 @@ describe('propagateShiftForward', () => {
     ).toEqual([])
     expect(mockedCount).not.toHaveBeenCalled()
   })
+  it('does nothing when today is not after the stored day', async () => {
+    const touched = await propagateShiftForward({
+      storeDate: '2026-10-02', departmentKey: 'mont', shift: 'night',
+      before: v(0), after: v(61), today: '2026-10-02',
+    })
+    expect(touched).toEqual([])
+    expect(mockedCount).not.toHaveBeenCalled()
+  })
+
+  it('weekend: Friday edit with today=Sunday only skips Saturday (nothing to do)', async () => {
+    const touched = await propagateShiftForward({
+      storeDate: '2026-10-02', departmentKey: 'mont', shift: 'night',
+      before: v(0), after: v(61), today: '2026-10-04',
+    })
+    expect(touched).toEqual([])
+    expect(mockedFindUnique).not.toHaveBeenCalled()
+  })
+
+  it('chains copies across several days and stops at the first explicit edit', async () => {
+    // 10-05 and 10-06 are plain copies of the old value (0); 10-07 was edited to 9.
+    mockedCount.mockResolvedValue(18)
+    mockedFindUnique.mockImplementation((arg: { where: { date_departmentKey_shift: { date: Date } } }) => {
+      const d = arg.where.date_departmentKey_shift.date.toISOString().slice(0, 10)
+      return Promise.resolve({ ...v(d === '2026-10-07' ? 9 : 0) })
+    })
+    const touched = await propagateShiftForward({
+      storeDate: '2026-10-02', departmentKey: 'mont', shift: 'night',
+      before: v(0), after: v(61), today: '2026-10-09',
+    })
+    expect(touched).toEqual(['2026-10-05', '2026-10-06'])
+  })
+
+  it('does not overwrite a row whose absences differ even if quadro matches', async () => {
+    mockedCount.mockResolvedValue(18)
+    mockedFindUnique.mockResolvedValue({ ...v(10, 3) })
+    const touched = await propagateShiftForward({
+      storeDate: '2026-10-02', departmentKey: 'mont', shift: 'night',
+      before: v(10, 0), after: v(61, 0), today: '2026-10-05',
+    })
+    expect(touched).toEqual([])
+    expect(mockedUpdate).not.toHaveBeenCalled()
+  })
+
+  it('never propagates a zero shift edit onto a different shift/department (query is scoped)', async () => {
+    mockedCount.mockResolvedValue(18)
+    mockedFindUnique.mockResolvedValue(null)
+    await propagateShiftForward({
+      storeDate: '2026-10-02', departmentKey: 'pick', shift: 'zero',
+      before: null, after: v(3), today: '2026-10-05',
+    })
+    const data = mockedCreateMany.mock.calls[0][0].data
+    expect(data).toHaveLength(1)
+    expect(data[0]).toMatchObject({ departmentKey: 'pick', shift: 'zero', quadro: 3 })
+  })
 })

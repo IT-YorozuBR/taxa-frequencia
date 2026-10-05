@@ -12,6 +12,7 @@ import {
   toLocalDateStr,
   sumShifts,
   calcAttendanceRate,
+  isSunday,
 } from '@/lib/utils'
 import { ALL_LEAF_KEYS } from '@/lib/structure'
 
@@ -30,6 +31,7 @@ export default function Home() {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null)
 
   const prevDate = getPrevDayStr(selectedDate)
+  const sunday = isSunday(selectedDate)
   const today = todayStr()
 
   // Each call gets an id; only the latest call may touch the screen, so a slow
@@ -241,6 +243,12 @@ export default function Home() {
         </div>
       )}
 
+      {sunday && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Domingo não tem registro próprio: a tabela mostra os dados do último dia com registro (somente leitura).
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400">
           <svg className="animate-spin h-8 w-8 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -255,6 +263,7 @@ export default function Home() {
             data={data}
             date={selectedDate}
             prevDate={prevDate}
+            readOnly={sunday}
             onCellChange={handleCellChange}
           />
 

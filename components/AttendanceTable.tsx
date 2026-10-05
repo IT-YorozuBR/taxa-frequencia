@@ -8,6 +8,7 @@ interface AttendanceTableProps {
   data: DeptShiftData
   date: string
   prevDate: string
+  readOnly?: boolean
   onCellChange: (deptKey: string, shift: Shift, field: 'quadro' | 'plannedAbsence' | 'unplannedAbsence' | 'indeterminateAbsence', value: number) => void
 }
 
@@ -92,7 +93,7 @@ function ShiftCells({
   )
 }
 
-export default function AttendanceTable({ data, date, prevDate, onCellChange }: AttendanceTableProps) {
+export default function AttendanceTable({ data, date, prevDate, readOnly = false, onCellChange }: AttendanceTableProps) {
   return (
     <div className="overflow-auto rounded-xl shadow border border-gray-300 max-h-[88vh]">
       <table className="text-sm border-collapse w-full">
@@ -161,7 +162,7 @@ export default function AttendanceTable({ data, date, prevDate, onCellChange }: 
                       <ShiftCells 
                         key={s.key} 
                         sd={sd} 
-                        editable={true} 
+                        editable={!readOnly} 
                         deptKey={r.key} 
                         shift={s.key} 
                         onCellChange={onCellChange}

@@ -6,6 +6,7 @@ import {
   getPrevWorkingDayStr,
   getNextWorkingDayStr,
   isWeekend,
+  isSunday,
   chartShiftDates,
   buildDeptShiftData,
   buildMixedDeptShiftData,
@@ -76,6 +77,13 @@ describe('working-day date helpers', () => {
     expect(getNextWorkingDayStr('2026-08-21')).toBe('2026-08-22')
     // 2026-08-22 (Saturday) -> Monday (Sunday skipped)
     expect(getNextWorkingDayStr('2026-08-22')).toBe('2026-08-24')
+  })
+
+  it('isSunday flags only Sunday', () => {
+    expect(isSunday('2026-10-04')).toBe(true)
+    expect(isSunday('2026-10-03')).toBe(false) // Sat
+    expect(isSunday('2026-10-05')).toBe(false) // Mon
+    expect(isSunday('2026-10-11')).toBe(true)
   })
 
   it('isWeekend flags Saturday and Sunday only', () => {

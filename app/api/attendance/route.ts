@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPrevWorkingDayStr, getTodayStr } from '@/lib/utils'
+import { getPrevWorkingDayStr, getTodayStr, isSunday } from '@/lib/utils'
 import { findLastDayWithData, ensureCarryForwardToToday, propagateShiftForward } from '@/lib/carryForward'
 import { logAudit } from '@/lib/audit'
 import { deptLabel, shiftLabel } from '@/lib/labels'
@@ -31,9 +31,14 @@ export async function GET(req: NextRequest) {
 
     let records = await prisma.dailyAttendance.findMany({ where })
 
-    // Future dates: never persist, just preview the last known day virtually.
-    if (records.length === 0 && date > today) {
-      const source = await findLastDayWithData(getPrevWorkingDayStr(date))
+    // Future dates and Sundays (the factory doesn't run; no rows are ever
+    // created for them): never persist, just show the last known day virtually.
+    if (records.length === 0 && (date > today || isSunday(date))) {
+      // Sunday shows Saturday (1º turno runs then); other dates the previous working day.
+      const from = isSunday(date)
+        ? new Date(new Date(date + 'T12:00:00Z').getTime() - 86400000).toISOString().split('T')[0]
+        : getPrevWorkingDayStr(date)
+      const source = await findLastDayWithData(from)
       if (source) {
         const virtual = shiftFilter
           ? source.recs.filter(r => r.shift === shiftFilter)
@@ -104,6 +109,13 @@ export async function POST(req: NextRequest) {
     const { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence } = validation.value
 
     console.log('🔵 [POST] Recebido:', { date, departmentKey, shift, quadro, plannedAbsence, unplannedAbsence, indeterminateAbsence })
+
+    if (isSunday(date)) {
+      return NextResponse.json(
+        { error: 'Domingo não tem registro próprio (somente leitura)' },
+        { status: 400 }
+      )
+    }
 
     const actorId = req.headers.get('x-user-id')
     const actorUsername = req.headers.get('x-user-username') ?? 'desconhecido'

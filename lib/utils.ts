@@ -79,6 +79,10 @@ export function getPrevDayStr(dateStr: string): string {
   return getPrevWorkingDayStr(dateStr)
 }
 
+export function isSunday(dateStr: string): boolean {
+  return new Date(dateStr + 'T12:00:00Z').getUTCDay() === 0
+}
+
 export function isWeekend(dateStr: string): boolean {
   const dow = new Date(dateStr + 'T12:00:00Z').getUTCDay()
   return dow === 0 || dow === 6 // domingo ou sábado
