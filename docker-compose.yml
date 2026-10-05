@@ -36,6 +36,13 @@ services:
   app:
     build: .
     restart: unless-stopped
+    # Rotação dos logs do container (o arquivo de log antigo corrompeu e
+    # `docker compose logs app` passou a falhar).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -54,8 +61,8 @@ services:
       db:
         condition: service_healthy
 
-  # Substitui o Vercel Cron: chama /api/cron/snapshot nos dias úteis.
-  # Schedule em UTC (idêntico ao vercel.json: "0 22 * * 1-5").
+  # Substitui o Vercel Cron: chama /api/cron/snapshot todos os dias às 04:30 UTC
+  # (01:30 Brasília), idêntico ao vercel.json: "30 4 * * *".
   cron:
     image: alpine:3.20
     restart: unless-stopped

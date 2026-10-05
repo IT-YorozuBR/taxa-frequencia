@@ -10,6 +10,94 @@ export type Rec = {
   indeterminateAbsence: number
 }
 
+type ShiftValues = Pick<Rec, 'quadro' | 'plannedAbsence' | 'unplannedAbsence' | 'indeterminateAbsence'>
+
+function sameValues(a: ShiftValues, b: ShiftValues): boolean {
+  return (
+    a.quadro === b.quadro &&
+    a.plannedAbsence === b.plannedAbsence &&
+    a.unplannedAbsence === b.unplannedAbsence &&
+    a.indeterminateAbsence === b.indeterminateAbsence
+  )
+}
+
+// Propagate an edit of a night/zero row forward to the days that were already
+// materialized.
+//
+// Why this exists: 2º/3º turno edits made on display day D are stored on D-1
+// (see POST /api/attendance), but the display of D+1 reads them from D's rows.
+// D (and often D+1…today) were already copied from D-1 by the carry-forward
+// BEFORE the edit happened, and carry-forward never touches an existing row
+// (skipDuplicates). Without this, the edit never reaches the following days
+// and the screen of the next day shows stale/blank 2º/3º turno.
+//
+// Walk forward from `storeDate` over working days (Mon–Sat) up to `today`:
+// - Saturday is skipped (it never holds night/zero rows; Monday reads Friday's).
+// - a day with no rows at all is not materialized yet → stop (carry-forward
+//   will copy the up-to-date source later).
+// - missing row on a materialized day → create it with the new values.
+// - existing row still equal to the previous value (a plain copy) → update it.
+// - existing row that differs (someone edited it explicitly) → leave it alone
+//   and stop, so later days that carry from it are not overwritten either.
+//
+// Returns the list of dates that were created/updated.
+export async function propagateShiftForward(params: {
+  storeDate: string
+  departmentKey: string
+  shift: string
+  before: ShiftValues | null
+  after: ShiftValues
+  today?: string
+}): Promise<string[]> {
+  const { storeDate, departmentKey, shift, before, after } = params
+  const today = params.today ?? getTodayStr()
+  if (shift !== 'night' && shift !== 'zero') return []
+  if (before && sameValues(before, after)) return []
+
+  const touched: string[] = []
+  let prev: ShiftValues | null = before
+  let cursor = getNextWorkingDayStr(storeDate)
+
+  while (cursor <= today) {
+    const isSaturday = new Date(cursor + 'T12:00:00Z').getUTCDay() === 6
+    if (!isSaturday) {
+      const dateObj = new Date(cursor + 'T00:00:00.000Z')
+
+      const dayCount = await prisma.dailyAttendance.count({ where: { date: dateObj } })
+      if (dayCount === 0) break
+
+      const row = await prisma.dailyAttendance.findUnique({
+        where: { date_departmentKey_shift: { date: dateObj, departmentKey, shift } },
+      })
+
+      if (!row) {
+        await prisma.dailyAttendance.createMany({
+          data: [{ date: dateObj, departmentKey, shift, ...after }],
+          skipDuplicates: true,
+        })
+        touched.push(cursor)
+      } else if (prev && sameValues(row, prev)) {
+        await prisma.dailyAttendance.update({
+          where: { date_departmentKey_shift: { date: dateObj, departmentKey, shift } },
+          data: { ...after },
+        })
+        touched.push(cursor)
+        // The next day's row is a copy of what this one held before the update.
+        prev = {
+          quadro: row.quadro,
+          plannedAbsence: row.plannedAbsence,
+          unplannedAbsence: row.unplannedAbsence,
+          indeterminateAbsence: row.indeterminateAbsence,
+        }
+      } else {
+        break
+      }
+    }
+    cursor = getNextWorkingDayStr(cursor)
+  }
+  return touched
+}
+
 // Find the most recent working day (on or before `fromDate`) that has records.
 // Returns null if nothing is found within `maxBack` working days.
 export async function findLastDayWithData(
@@ -39,6 +127,9 @@ export async function findLastDayWithData(
 // and read back for the next day on display). So snapshotting the physical
 // rows forward is exactly correct — do NOT special-case shifts here, or the
 // 2º/3º turno mapping breaks.
+//
+// (Edits of night/zero made later are pushed forward by propagateShiftForward —
+// this function only ever creates missing rows, it never updates existing ones.)
 //
 // Exception: Saturday. The factory only runs 1º turno on Saturdays — 2º/3º
 // turno for a Saturday view are already read dynamically from Friday's

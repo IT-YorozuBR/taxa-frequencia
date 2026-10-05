@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import AttendanceTable from '@/components/AttendanceTable'
 import AttendanceChart from '@/components/AttendanceChart'
 import { Shift } from '@/lib/structure'
@@ -25,22 +25,31 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasLocalChanges, setHasLocalChanges] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [loadedAt, setLoadedAt] = useState<Date | null>(null)
 
   const prevDate = getPrevDayStr(selectedDate)
   const today = todayStr()
 
+  // Each call gets an id; only the latest call may touch the screen, so a slow
+  // response for a previous date can never overwrite the date now selected.
+  const requestIdRef = useRef(0)
+
   const fetchData = useCallback(async (date: string) => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
+    setLoadError(null)
     try {
       const prevDay = getPrevDayStr(date)
 
       const [currentRes, prevRes] = await Promise.all([
-        fetch(`/api/attendance?date=${date}`),
-        fetch(`/api/attendance?date=${prevDay}`),
+        fetch(`/api/attendance?date=${date}`, { cache: 'no-store' }),
+        fetch(`/api/attendance?date=${prevDay}`, { cache: 'no-store' }),
       ])
 
       if (!currentRes.ok || !prevRes.ok) {
-        throw new Error('Erro ao buscar dados')
+        throw new Error(`Erro ao buscar dados (HTTP ${currentRes.status}/${prevRes.status})`)
       }
 
       const [currentRecords, prevRecords] = await Promise.all([
@@ -48,23 +57,26 @@ export default function Home() {
         prevRes.json(),
       ])
 
-      // ✅ IMPORTANTE: atualizar estado com dados recebidos
-      const builtData = buildMixedDeptShiftData(currentRecords, prevRecords)
-      setData(builtData)  // ← ADICIONA ESSA LINHA!
+      if (requestId !== requestIdRef.current) return null // outdated response
 
+      const builtData = buildMixedDeptShiftData(currentRecords, prevRecords)
+      setData(builtData)
+      setLoadedAt(new Date())
       return builtData
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
-      return {}
+      if (requestId === requestIdRef.current) {
+        setLoadError('Não foi possível carregar os dados. Os valores abaixo podem estar desatualizados.')
+      }
+      return null
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchData(selectedDate).then(d => {  
-      setData(d)
-      setHasLocalChanges(false)
+    fetchData(selectedDate).then(d => {
+      if (d) setHasLocalChanges(false)
     })
   }, [selectedDate, fetchData])
 
@@ -100,6 +112,7 @@ export default function Home() {
 
     setHasLocalChanges(true)
     setSaving(true)
+    setSaveError(null)
 
     try {
       // ✅ Enviar TODOS os campos (não apenas o alterado)
@@ -118,12 +131,16 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        throw new Error('Erro ao salvar')
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error ?? `Erro ao salvar (HTTP ${response.status})`)
       }
 
     } catch (error) {
       console.error('Erro ao salvar:', error)
-      await fetchData(selectedDate).then(d => setData(d))
+      setSaveError(
+        `Não foi possível salvar a última alteração (${error instanceof Error ? error.message : 'erro desconhecido'}). O valor voltou ao que está salvo.`
+      )
+      await fetchData(selectedDate)
     } finally {
       setSaving(false)
     }
@@ -212,6 +229,18 @@ export default function Home() {
         </div>
       </div>
 
+      {(loadError || saveError) && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-3">
+          <span>{saveError ?? loadError}</span>
+          <button
+            onClick={() => { setSaveError(null); fetchData(selectedDate) }}
+            className="shrink-0 rounded bg-red-700 px-3 py-1 text-white hover:bg-red-800"
+          >
+            Recarregar
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400">
           <svg className="animate-spin h-8 w-8 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -241,6 +270,7 @@ export default function Home() {
 
       <div className="mt-4 text-xs text-gray-400 text-center">
         💡 Clique para editar • Noturno e Zero Hora = dados do dia útil anterior ({prevDate})
+        {loadedAt && ` • Dados de ${selectedDate} carregados às ${loadedAt.toLocaleTimeString('pt-BR')}`}
       </div>
     </main>
   )

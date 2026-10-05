@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getPrevWorkingDayStr, getTodayStr } from '@/lib/utils'
-import { findLastDayWithData, ensureCarryForwardToToday } from '@/lib/carryForward'
+import { findLastDayWithData, ensureCarryForwardToToday, propagateShiftForward } from '@/lib/carryForward'
 import { logAudit } from '@/lib/audit'
 import { deptLabel, shiftLabel } from '@/lib/labels'
 import { validateAttendancePayload } from '@/lib/validation'
+
+// Never let a browser/proxy keep a copy: the table must always show what is in
+// the database right now.
+export const dynamic = 'force-dynamic'
+const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' }
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,17 +38,58 @@ export async function GET(req: NextRequest) {
         const virtual = shiftFilter
           ? source.recs.filter(r => r.shift === shiftFilter)
           : source.recs
-        return NextResponse.json(virtual)
+        return NextResponse.json(virtual, { headers: NO_STORE })
       }
     }
 
-    return NextResponse.json(records)
+    return NextResponse.json(records, { headers: NO_STORE })
   } catch (error) {
     console.error('[GET /api/attendance]', error)
     return NextResponse.json(
       { error: 'Erro ao buscar dados' },
       { status: 500 }
     )
+  }
+}
+
+type ShiftRow = {
+  quadro: number
+  plannedAbsence: number
+  unplannedAbsence: number
+  indeterminateAbsence: number
+}
+
+const pickValues = (r: ShiftRow): ShiftRow => ({
+  quadro: r.quadro,
+  plannedAbsence: r.plannedAbsence,
+  unplannedAbsence: r.unplannedAbsence,
+  indeterminateAbsence: r.indeterminateAbsence,
+})
+
+// 2º/3º turno edits are stored on the previous working day but read from the
+// following days' rows — push the edit forward (see propagateShiftForward).
+// Best-effort: the edit itself is already saved, so a failure here must not
+// turn the request into an error.
+async function propagateNightZero(
+  storeDate: string,
+  departmentKey: string,
+  shift: string,
+  before: ShiftRow | null,
+  after: ShiftRow
+) {
+  try {
+    const touched = await propagateShiftForward({
+      storeDate,
+      departmentKey,
+      shift,
+      before: before ? pickValues(before) : null,
+      after: pickValues(after),
+    })
+    if (touched.length > 0) {
+      console.log('[POST] Propagado para', touched.join(', '))
+    }
+  } catch (error) {
+    console.error('[POST] Falha ao propagar para os dias seguintes:', error)
   }
 }
 
@@ -136,6 +182,8 @@ export async function POST(req: NextRequest) {
           },
         },
       })
+
+      await propagateNightZero(storeDate, departmentKey, shift, existing, record)
 
       return NextResponse.json(record, { status: 201 })
     }
@@ -258,6 +306,8 @@ export async function POST(req: NextRequest) {
         },
       },
     })
+
+    await propagateNightZero(storeDate, departmentKey, shift, beforeUpsert, record)
 
     return NextResponse.json(record, { status: 201 })
   } catch (error) {
