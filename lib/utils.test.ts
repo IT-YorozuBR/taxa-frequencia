@@ -15,8 +15,8 @@ import {
 } from './utils'
 
 describe('calcAttendanceRate', () => {
-  it('returns 0 when quadro is 0 (avoids division by zero)', () => {
-    expect(calcAttendanceRate(emptyShift())).toBe(0)
+  it('returns 1 (100%) when quadro is 0 (avoids division by zero)', () => {
+    expect(calcAttendanceRate(emptyShift())).toBe(1)
   })
 
   it('is 1 (100%) when there are no absences', () => {

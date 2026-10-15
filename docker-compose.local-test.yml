@@ -1,0 +1,16 @@
+name: taxa-frequencia-localtest
+services:
+  db:
+    volumes: !override
+      - pgdata_test:/var/lib/postgresql
+  app:
+    ports:
+      - "3099:3000"
+    networks: !override
+      - default
+  cron: { profiles: ["off"] }
+  backup: { profiles: ["off"] }
+volumes:
+  pgdata_test:
+networks:
+  npm_network: !reset null

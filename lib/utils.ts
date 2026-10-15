@@ -10,7 +10,8 @@ export interface ShiftData {
 export type DeptShiftData = Record<string, Record<Shift, ShiftData>>
 
 export function calcAttendanceRate(s: ShiftData): number {
-  if (!s.quadro || s.quadro === 0) return 0
+  // Quadro zerado = ninguém escalado, logo ninguém faltou: 100%
+  if (!s.quadro || s.quadro === 0) return 1
   return (s.quadro - (s.plannedAbsence + s.unplannedAbsence + s.indeterminateAbsence)) / s.quadro
 }
 
